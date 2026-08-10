@@ -1,7 +1,7 @@
-// NowPlayingProvider.swift — Supplies timeline entries to NowPlayingWidget.
+// NowPlayingProvider.swift, Supplies timeline entries to NowPlayingWidget.
 //
 // HOW WIDGETKIT TIMELINES WORK:
-// A widget doesn't run continuously like the main app — the system asks a
+// A widget doesn't run continuously like the main app, the system asks a
 // `TimelineProvider` for a `Timeline` (a list of entries, each with a date),
 // then renders whichever entry's date has most recently passed, on its own
 // schedule. Widgets don't "poll"; instead the app proactively calls
@@ -11,9 +11,9 @@
 //
 // Because the app already pushes a reload on every meaningful change, this
 // provider only ever needs to hand back a single-entry timeline with
-// `.never` as the refresh policy — "never refresh on your own; wait for the
+// `.never` as the refresh policy, "never refresh on your own; wait for the
 // app to tell you." The one exception is a *playing* song's progress bar,
-// which needs to keep moving between app-driven reloads — that's handled by
+// which needs to keep moving between app-driven reloads, that's handled by
 // `NowPlayingSnapshot.projectedElapsedSeconds` computing from the wall
 // clock rather than needing a new timeline entry every second.
 
@@ -28,14 +28,14 @@ struct NowPlayingEntry: TimelineEntry {
 }
 
 struct NowPlayingProvider: TimelineProvider {
-    /// Shown instantly while the widget is loading its first real entry —
+    /// Shown instantly while the widget is loading its first real entry,
     /// SwiftUI previews and the widget gallery also use this indirectly via
     /// `getSnapshot(in:completion:)`'s `context.isPreview` branch.
     func placeholder(in context: Context) -> NowPlayingEntry {
         NowPlayingEntry(date: Date(), snapshot: .placeholderExample, artworkData: nil)
     }
 
-    /// A quick, representative entry — used by the widget gallery/picker UI
+    /// A quick, representative entry, used by the widget gallery/picker UI
     /// and for transient system snapshots. Skips the network fetch so the
     /// gallery renders instantly; real placements get real artwork via
     /// `getTimeline`.
@@ -69,7 +69,7 @@ struct NowPlayingProvider: TimelineProvider {
     /// `NowPlayingSnapshot` a tiny, cheap-to-write JSON blob instead of a
     /// multi-KB image blob written on every play/pause toggle. The
     /// trade-off is a short network fetch each time the widget's timeline
-    /// refreshes — bounded by a 5s timeout so a slow/broken connection
+    /// refreshes, bounded by a 5s timeout so a slow/broken connection
     /// still yields a widget (with a placeholder icon instead of art)
     /// rather than the OS-imposed timeline-generation deadline killing the
     /// whole update.

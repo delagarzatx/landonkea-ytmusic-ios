@@ -23,7 +23,7 @@ struct ErrorBanner: View {
     /// The error message to display
     let message: String
     
-    /// Optional retry action — if provided, shows a "Retry" button
+    /// Optional retry action, if provided, shows a "Retry" button
     var onRetry: (() -> Void)?
     
     /// Whether to show the banner (controls dismiss animation)

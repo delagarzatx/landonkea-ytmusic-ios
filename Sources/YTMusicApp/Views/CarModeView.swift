@@ -1,4 +1,4 @@
-// CarModeView.swift — A simplified, full-screen player interface optimized for use while driving.
+// CarModeView.swift, A simplified, full-screen player interface optimized for use while driving.
 
 import SwiftUI // SwiftUI provides the declarative UI building blocks (View, VStack, Button, etc.) used throughout this file
 
@@ -19,11 +19,11 @@ import SwiftUI // SwiftUI provides the declarative UI building blocks (View, VSt
 /// NOTE ON STYLE: `body` only lays out the overall structure and delegates each visual
 /// chunk (header, song info, progress bar, transport controls, shuffle/repeat row) to its
 /// own small computed property below. This is the same idea as splitting a long function
-/// into smaller, well-named helper functions — each section can be read and understood on
+/// into smaller, well-named helper functions, each section can be read and understood on
 /// its own.
 struct CarModeView: View {
 
-    /// The audio player — provides playback controls and song info.
+    /// The audio player, provides playback controls and song info.
     /// `@EnvironmentObject` is a property wrapper (the `@` marks it as adding special
     /// behavior) that reads a shared `AudioPlayer` instance from the SwiftUI environment
     /// rather than creating a new one. Because `AudioPlayer` publishes its changes, SwiftUI
@@ -35,7 +35,7 @@ struct CarModeView: View {
     /// whatever presented this view.
     @Environment(\.dismiss) var dismiss
 
-    /// The main view content — the required `body` computed property every `View` must
+    /// The main view content, the required `body` computed property every `View` must
     /// implement. SwiftUI calls it to determine what to draw on screen.
     var body: some View {
         // Full-screen black background for maximum contrast
@@ -105,7 +105,7 @@ struct CarModeView: View {
         // which avoids ever trying to read `.title`/`.artist` off of "nothing."
         if let song = audioPlayer.currentSong {
             VStack(spacing: 12) {
-                // Song title — large and bold
+                // Song title, large and bold
                 Text(song.title)
                     .font(.title) // Large font
                     .fontWeight(.bold) // Bold weight
@@ -113,7 +113,7 @@ struct CarModeView: View {
                     .lineLimit(2) // Wrap at most 2 lines
                     .multilineTextAlignment(.center) // Center-align text
 
-                // Artist name — slightly smaller, less prominent
+                // Artist name, slightly smaller, less prominent
                 Text(song.artist)
                     .font(.title3) // Medium-large font
                     .foregroundColor(.white.opacity(0.7)) // Slightly transparent
@@ -123,8 +123,8 @@ struct CarModeView: View {
         }
     }
 
-    /// Simple progress indicator (no time labels next to the bar itself — time is shown
-    /// below it — keeps the bar minimal).
+    /// Simple progress indicator (no time labels next to the bar itself, time is shown
+    /// below it, keeps the bar minimal).
     private var progressBarView: some View {
         VStack(spacing: 8) {
             // `GeometryReader` is a view that doesn't draw anything itself; instead it
@@ -154,7 +154,7 @@ struct CarModeView: View {
             }
             .frame(height: 8) // Constrain GeometryReader to match bar height
 
-            // Time labels — larger font for readability
+            // Time labels, larger font for readability
             HStack {
                 // Current playback time (elapsed)
                 Text(formatTime(audioPlayer.currentTime))
@@ -172,7 +172,7 @@ struct CarModeView: View {
         .padding(.horizontal, 40) // Side padding for progress bar
     }
 
-    /// Giant transport buttons — 80pt minimum tap target for safe driving.
+    /// Giant transport buttons, 80pt minimum tap target for safe driving.
     private var playbackControlsView: some View {
         HStack(spacing: 60) {
             // Previous button (large)
@@ -185,14 +185,14 @@ struct CarModeView: View {
             }
             .frame(width: 80, height: 80) // Large tap target
 
-            // Play/pause button (extra large — the most important button)
+            // Play/pause button (extra large, the most important button)
             Button(action: {
                 audioPlayer.togglePlayPause() // Play if paused, pause if playing
             }) {
                 // Dynamic icon: show pause when playing, play when not.
                 // The `? :` operator is Swift's "ternary conditional": it reads as
                 // "if `audioPlayer.state == .playing` is true, use the first value,
-                // otherwise use the second" — a compact one-line if/else for picking a value.
+                // otherwise use the second", a compact one-line if/else for picking a value.
                 Image(systemName: audioPlayer.state == .playing ? "pause.fill" : "play.fill")
                     .font(.system(size: 70)) // Extra-large icon
                     .foregroundColor(.white) // White icon
@@ -211,7 +211,7 @@ struct CarModeView: View {
         }
     }
 
-    /// Shuffle + repeat toggles — smaller and less prominent than the transport controls,
+    /// Shuffle + repeat toggles, smaller and less prominent than the transport controls,
     /// since they're used less often while driving.
     private var shuffleRepeatView: some View {
         HStack(spacing: 60) {
@@ -220,7 +220,7 @@ struct CarModeView: View {
                 audioPlayer.toggleShuffle() // Toggle shuffle mode on/off
             }) {
                 Image(systemName: "shuffle") // Shuffle icon
-                    .font(.title2) // Medium size — less prominent than transport
+                    .font(.title2) // Medium size, less prominent than transport
                     // Bright when on, faded when off
                     .foregroundColor(audioPlayer.isShuffled ? .white : .white.opacity(0.4))
             }
@@ -242,12 +242,12 @@ struct CarModeView: View {
     // MARK: - Helpers
 
     /// Format seconds into MM:SS string.
-    /// Same logic as PlayerView's formatTime — could be extracted to a shared utility.
+    /// Same logic as PlayerView's formatTime, could be extracted to a shared utility.
     private func formatTime(_ seconds: Double) -> String {
         // `guard` checks a condition up front and exits early (via `return`) if it fails,
         // rather than nesting the "happy path" inside an `if`. This protects against
         // `Double.nan` ("not a number") or `.infinity`, which can happen transiently while
-        // the player is loading a new track and duration/time haven't been reported yet —
+        // the player is loading a new track and duration/time haven't been reported yet,
         // formatting those with `%d` would otherwise produce garbage or crash.
         guard !seconds.isNaN && !seconds.isInfinite else {
             return "0:00" // Safe fallback for invalid time values

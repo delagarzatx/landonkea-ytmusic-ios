@@ -33,7 +33,7 @@ A free, open-source YouTube Music client for iPhone, iPad, and Mac.
 
 ## How It Works
 
-This app uses YouTube's InnerTube API - the same internal API that the official YouTube Music app uses. By pretending to be the official iOS YouTube Music client, we can:
+This app uses YouTube's InnerTube API, the same internal API that the official YouTube Music app uses. By pretending to be the official iOS YouTube Music client, we can:
 
 - Search for any song
 - Get streaming URLs
@@ -68,7 +68,7 @@ Sources/
 
 ## Mac Catalyst
 
-The app builds as a native Mac app via Mac Catalyst — same codebase, no
+The app builds as a native Mac app via Mac Catalyst, same codebase, no
 separate macOS target. Build it with:
 
 ```
@@ -93,12 +93,12 @@ Xcode, plain "Automatic" signing works with no extra flags.
 
 ### What works
 
-- Playback, search, browse, downloads, lyrics, equalizer, playlists — the
+- Playback, search, browse, downloads, lyrics, equalizer, playlists, the
   app compiled and ran under Catalyst with **no source changes**. UIKit,
   AVFoundation/AVAudioSession, MediaPlayer, BackgroundTasks, Speech, and
   Intents all link and run fine in the Catalyst runtime.
 - The Home Screen / Lock Screen Now Playing widget (`YTMusicWidgetExtension`)
-  embeds and builds for Catalyst too — WidgetKit widgets from a Catalyst
+  embeds and builds for Catalyst too, WidgetKit widgets from a Catalyst
   app surface in macOS's Notification Center widget gallery the same way
   Home Screen widgets do on iOS, with no extension-specific code changes
   required.
@@ -107,11 +107,11 @@ Xcode, plain "Automatic" signing works with no extra flags.
 
 - **Lock screen / Control Center semantics differ.** `MPRemoteCommandCenter`
   and `MPNowPlayingInfoCenter` still work under Catalyst, but there's no
-  literal "lock screen" on a Mac — the same remote-command wiring instead
+  literal "lock screen" on a Mac, the same remote-command wiring instead
   surfaces playback controls in macOS's Control Center / media widget and
   the Touch Bar (where present). This was not manually verified on real
   Mac hardware in this change, only confirmed to build/link.
-- **`AVAudioSession` category/options are largely advisory on Mac** — there
+- **`AVAudioSession` category/options are largely advisory on Mac**, there
   is no silent switch and background-audio behavior is governed by normal
   macOS app lifecycle rules, not iOS's background modes. `setupAudioSession()`
   and `VoiceSearchManager`'s `activateAudioSession()` still call
@@ -124,12 +124,12 @@ Xcode, plain "Automatic" signing works with no extra flags.
   unverified until built with real signing.
 - Haptics (`UIImpactFeedbackGenerator`/`UINotificationFeedbackGenerator` in
   `Haptics.swift`) compile unchanged and no-op silently on Mac (no Taptic
-  Engine) — confirmed by reading Apple's documented Catalyst behavior, not
+  Engine), confirmed by reading Apple's documented Catalyst behavior, not
   by feeling for a vibration that can't exist on this hardware.
 
 ## CloudKit Sync
 
-Playlists and liked songs (only — not listening stats/play counts) sync
+Playlists and liked songs (only, not listening stats/play counts) sync
 across a user's devices via their private iCloud database. See
 `Sources/YTMusicApp/Services/CloudKitSyncManager.swift` for the full
 design writeup (why raw CloudKit instead of `NSPersistentCloudKitContainer`,
@@ -140,7 +140,7 @@ and no push-based `CKSubscription`).
 - `CloudKitRecordCoding`'s `Playlist`/`LikedSongEntry` <-> `CKRecord`
   encode/decode round trips (`CKRecord` can be constructed with no network
   or entitlements).
-- `PlaylistConflictResolver` / `LikedSongConflictResolver` — pure
+- `PlaylistConflictResolver` / `LikedSongConflictResolver`: pure
   last-write-wins-by-timestamp merge logic, no CloudKit types involved.
 - `CloudKitSyncManager`'s full pull/merge/apply/push orchestration, run
   against `InMemoryCloudRecordStore` (an in-memory fake conforming to the
@@ -155,16 +155,16 @@ See `Tests/YTMusicAppTests/CloudKitSyncTests.swift` for all of the above.
 iCloud with a real Apple Developer team provisioning
 `iCloud.com.landonkea.ytmusic`:**
 - That `CKDatabaseRecordStore` (the thin adapter over a real `CKDatabase`)
-  actually talks to CloudKit correctly — zone creation, record
+  actually talks to CloudKit correctly: zone creation, record
   save/fetch/delete against Apple's servers.
 - Real cross-device sync behavior (two physical/simulated devices
   converging on the same merged state).
 - `com.apple.developer.icloud-container-identifiers` / `-icloud-services`
-  entitlements resolving to a real, usable container — in local/CI builds
+  entitlements resolving to a real, usable container. In local/CI builds
   without a signing team, `CKContainer` operations fail with a
   "not authenticated"/no-account error, which `performSync()` catches and
   logs, skipping the sync pass rather than crashing. Local playlists/liked
-  songs remain fully usable offline either way — this only affects
+  songs remain fully usable offline either way. This only affects
   cross-device sync, the same category of caveat as the widget's App Group
   (see Mac Catalyst section above).
 
@@ -178,7 +178,7 @@ This runs `xcodegen generate` followed by `xcodebuild test` against the
 first available iPhone simulator, then writes a summary report to
 `test-results/latest.md` (pass/fail counts, timestamp, and any failures).
 The full raw `xcodebuild` log is saved alongside it at
-`test-results/raw.log`. Both are gitignored — generated locally and, in CI,
+`test-results/raw.log`. Both are gitignored, generated locally and, in CI,
 uploaded as a workflow artifact (see `.github/workflows/ci.yml`).
 
 ## What's Next

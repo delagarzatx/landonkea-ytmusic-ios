@@ -1,8 +1,8 @@
-// NowPlayingSnapshot.swift — Shared "what's playing right now" state.
+// NowPlayingSnapshot.swift, Shared "what's playing right now" state.
 //
 // WHY THIS FILE LIVES IN ITS OWN MODULE FOLDER (Sources/YTMusicShared):
 // The Home Screen / Lock Screen widget (Sources/YTMusicWidget) runs in a
-// separate OS process from the main app (Sources/YTMusicApp) — it's a
+// separate OS process from the main app (Sources/YTMusicApp), it's a
 // distinct extension target with its own sandbox. It cannot read
 // AudioPlayer's @Published properties directly. Both targets compile this
 // same file (see project.yml's `sources:` for each target), so they share
@@ -10,7 +10,7 @@
 // two independently-maintained copies that could drift out of sync.
 //
 // HOW DATA CROSSES THE PROCESS BOUNDARY:
-// The app and the widget extension both belong to the same "App Group" —
+// The app and the widget extension both belong to the same "App Group",
 // a sandboxed container both processes are allowed to read/write (declared
 // in YTMusicApp.entitlements and YTMusicWidget.entitlements). We use
 // UserDefaults(suiteName:) scoped to that App Group as a lightweight
@@ -25,12 +25,12 @@ import Foundation
 /// (AudioPlayer.updateWidgetSnapshot(song:)) and read by the widget
 /// extension's TimelineProvider.
 ///
-/// SCOPE (v1): just enough to render a compact now-playing card — title,
+/// SCOPE (v1): just enough to render a compact now-playing card, title,
 /// artist, artwork URL, play/pause state, and enough timing info to draw a
-/// progress bar. No queue, no lyrics — those would be their own widgets.
+/// progress bar. No queue, no lyrics, those would be their own widgets.
 struct NowPlayingSnapshot: Codable, Equatable {
     /// YouTube video ID (mirrors `NowPlaying.id`). `nil` means nothing is
-    /// currently loaded — the widget shows its "not playing" state.
+    /// currently loaded, the widget shows its "not playing" state.
     let videoId: String?
     let title: String
     let artist: String
@@ -42,11 +42,11 @@ struct NowPlayingSnapshot: Codable, Equatable {
     /// When this snapshot was written. Combined with `elapsedSeconds` this
     /// lets the widget keep a *playing* song's progress bar advancing in
     /// between app-pushed updates (see `projectedElapsedSeconds`) without
-    /// the app needing to write a new snapshot every second — it only
+    /// the app needing to write a new snapshot every second, it only
     /// writes when the song or play/pause state actually changes.
     let updatedAt: Date
 
-    /// The "nothing is playing" state — shown on fresh installs (before the
+    /// The "nothing is playing" state, shown on fresh installs (before the
     /// app has ever written a snapshot) and after playback stops.
     static let empty = NowPlayingSnapshot(
         videoId: nil,
@@ -104,7 +104,7 @@ enum NowPlayingSnapshotStore {
 
     /// The WidgetKit "kind" identifier shared between the widget's
     /// `StaticConfiguration(kind:)` and the app's
-    /// `WidgetCenter.reloadTimelines(ofKind:)` call — both must agree on
+    /// `WidgetCenter.reloadTimelines(ofKind:)` call, both must agree on
     /// this string or the reload silently targets nothing.
     static let widgetKind = "NowPlayingWidget"
 
@@ -114,12 +114,12 @@ enum NowPlayingSnapshotStore {
         UserDefaults(suiteName: appGroupID)
     }
 
-    /// Persist the current snapshot. Safe to call frequently — it's a small
+    /// Persist the current snapshot. Safe to call frequently, it's a small
     /// JSON blob written to UserDefaults, not a disk file write.
     ///
     /// If the App Group is unavailable (e.g. a build with no code-signing
     /// team configured, so the shared container can't be resolved),
-    /// `UserDefaults(suiteName:)` returns `nil` and this silently no-ops —
+    /// `UserDefaults(suiteName:)` returns `nil` and this silently no-ops,
     /// the main app's own playback is unaffected either way; only the
     /// widget would show stale/empty data.
     static func save(_ snapshot: NowPlayingSnapshot) {
@@ -129,7 +129,7 @@ enum NowPlayingSnapshotStore {
 
     /// Read the last-saved snapshot, or `.empty` if nothing has ever been
     /// written, the App Group is unavailable, or the stored data is somehow
-    /// corrupt/undecodable — the widget always has *something* safe to draw.
+    /// corrupt/undecodable, the widget always has *something* safe to draw.
     static func load() -> NowPlayingSnapshot {
         guard let defaults, let data = defaults.data(forKey: storageKey) else {
             return .empty
@@ -137,7 +137,7 @@ enum NowPlayingSnapshotStore {
         return (try? JSONDecoder().decode(NowPlayingSnapshot.self, from: data)) ?? .empty
     }
 
-    /// Clear the snapshot — called when playback stops entirely (no current
+    /// Clear the snapshot, called when playback stops entirely (no current
     /// song), so the widget falls back to its "not playing" state instead
     /// of showing the last song forever.
     static func clear() {

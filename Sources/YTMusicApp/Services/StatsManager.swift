@@ -3,7 +3,7 @@ import SwiftUI
 
 // MARK: - Stats Manager
 
-/// Tracks listening statistics — total time, top songs, daily streaks, etc.
+/// Tracks listening statistics, total time, top songs, daily streaks, etc.
 ///
 /// HOW IT WORKS:
 /// - Records a "listen session" every time a song is played
@@ -18,7 +18,7 @@ import SwiftUI
 ///
 /// PERSISTENCE:
 /// - Stored as JSON in the Documents directory
-/// - Capped at the most recent 500 sessions (see `trimToMaxSessions()`) —
+/// - Capped at the most recent 500 sessions (see `trimToMaxSessions()`),
 ///   older sessions are dropped by count, not by age, to keep the saved
 ///   file small.
 @MainActor
@@ -26,14 +26,14 @@ class StatsManager: ObservableObject {
     
     // MARK: - Types
     
-    /// A single listen session — recorded when a song is played for >10 seconds.
+    /// A single listen session, recorded when a song is played for >10 seconds.
     ///
     /// - `Codable` means Swift can automatically convert this struct to/from
     ///   JSON (used below to save/load sessions to a file).
     /// - `Identifiable` means it has a unique `id`, which SwiftUI lists use
     ///   to tell rows apart (e.g. in a "recently played" screen).
     struct ListenSession: Codable, Identifiable {
-        // UUID = "Universally Unique Identifier" — a randomly generated ID
+        // UUID = "Universally Unique Identifier", a randomly generated ID
         // that's essentially guaranteed not to collide with any other UUID
         // ever generated, so it's a safe stand-in for a database row ID.
         let id: UUID
@@ -45,7 +45,7 @@ class StatsManager: ObservableObject {
         // Whether this session ended because the user skipped away rather
         // than the song finishing naturally. `= false` default means old,
         // already-saved sessions (recorded before this field existed) decode
-        // fine without needing a migration — `Codable`'s synthesized decoder
+        // fine without needing a migration, `Codable`'s synthesized decoder
         // treats a defaulted `var`/`let` as optional-if-missing as long as we
         // give it an explicit `init(from:)` below, since a plain default
         // value doesn't apply to JSON decoding automatically.
@@ -70,7 +70,7 @@ class StatsManager: ObservableObject {
             durationPlayed = try container.decode(Double.self, forKey: .durationPlayed)
             timestamp = try container.decode(Date.self, forKey: .timestamp)
             // Sessions saved before skip-tracking existed simply won't have
-            // this key — default to `false` (treat old data as "completed")
+            // this key, default to `false` (treat old data as "completed")
             // rather than failing to decode the whole history file.
             wasSkipped = try container.decodeIfPresent(Bool.self, forKey: .wasSkipped) ?? false
         }
@@ -118,7 +118,7 @@ class StatsManager: ObservableObject {
     /// HOW: builds a dictionary keyed by videoId that tallies how many times
     /// each song appears in `sessions`, then sorts that tally by count.
     /// A dictionary is used (rather than, say, filtering the array per song)
-    /// so every session is only looked at once — an O(n) pass instead of
+    /// so every session is only looked at once, an O(n) pass instead of
     /// O(n²) for large listening histories.
     func mostPlayedSongs(limit: Int = 20) -> [(videoId: String, title: String, artist: String, count: Int)] {
         // Each dictionary value bundles the song's display info alongside its
@@ -128,14 +128,14 @@ class StatsManager: ObservableObject {
 
         for session in sessions {
             if var entry = counts[session.videoId] {
-                // We've seen this song before — bump its count.
+                // We've seen this song before, bump its count.
                 // `var entry` makes a local mutable copy (dictionary values
                 // are structs/tuples here, which are value types), so we have
                 // to write it back into the dictionary explicitly below.
                 entry.count += 1
                 counts[session.videoId] = entry
             } else {
-                // First time seeing this song — start its count at 1.
+                // First time seeing this song, start its count at 1.
                 counts[session.videoId] = (session.title, session.artist, 1)
             }
         }
@@ -156,7 +156,7 @@ class StatsManager: ObservableObject {
 
         for session in sessions {
             // `default: 0` means: if `session.artist` isn't a key yet, treat
-            // its current count as 0 before adding 1 — avoids writing a
+            // its current count as 0 before adding 1, avoids writing a
             // separate "if this is the first time" branch like above.
             counts[session.artist, default: 0] += 1
         }
@@ -191,17 +191,17 @@ class StatsManager: ObservableObject {
     // MARK: - "On Repeat" / "Recently Discovered" (item #2)
     //
     // Both are different slices of the same `sessions` substrate as
-    // `mostPlayedSongs`/`topArtists` above — no new data collection needed,
+    // `mostPlayedSongs`/`topArtists` above, no new data collection needed,
     // just a different lens on it. This is the "cheap to build once #3 is
     // done" payoff mentioned in the original research: because sessions now
     // include skipped plays too, these slices reflect genuine listening
     // behavior rather than only naturally-completed plays.
 
-    /// Songs in "heavy rotation" recently — played (and NOT mostly skipped)
+    /// Songs in "heavy rotation" recently, played (and NOT mostly skipped)
     /// several times within the last `withinDays` days.
     ///
     /// This is distinct from `mostPlayedSongs`, which is all-time and
-    /// doesn't care about recency — a song played 40 times two years ago
+    /// doesn't care about recency, a song played 40 times two years ago
     /// but never since would top `mostPlayedSongs` forever. `onRepeatSongs`
     /// only looks at recent behavior, so it reflects what's on repeat *now*.
     func onRepeatSongs(limit: Int = 20, withinDays: Int = 21, minPlays: Int = 3) -> [(videoId: String, title: String, artist: String, count: Int)] {
@@ -225,18 +225,18 @@ class StatsManager: ObservableObject {
             .map { (videoId: $0.key, title: $0.value.title, artist: $0.value.artist, count: $0.value.count) }
     }
 
-    /// Songs the user started listening to for the first time recently —
+    /// Songs the user started listening to for the first time recently,
     /// i.e. their earliest recorded session falls within `withinDays` days.
     ///
     /// Sorted newest-discovery-first. Songs the user has since skipped every
-    /// time are excluded — a song someone tried once and bailed on isn't a
+    /// time are excluded, a song someone tried once and bailed on isn't a
     /// "discovery" worth resurfacing.
     func recentlyDiscoveredSongs(limit: Int = 20, withinDays: Int = 14) -> [(videoId: String, title: String, artist: String, firstPlayed: Date)] {
         let cutoff = Calendar.current.date(byAdding: .day, value: -withinDays, to: Date()) ?? .distantPast
 
         // Earliest session per videoId (sessions are appended in
         // chronological order, so the first match walking forward is the
-        // earliest — but we sort defensively rather than relying on that).
+        // earliest, but we sort defensively rather than relying on that).
         var earliestByVideo: [String: ListenSession] = [:]
         for session in sessions {
             if let existing = earliestByVideo[session.videoId] {
@@ -286,7 +286,7 @@ class StatsManager: ObservableObject {
         // AudioPlayer needing to hold a reference to StatsManager at all.
         //
         // `selector:` points at the method to call when the notification
-        // fires — `#selector(songDidFinish(_:))` refers to the `@objc` method
+        // fires, `#selector(songDidFinish(_:))` refers to the `@objc` method
         // below. `@objc` is required here because this old-style
         // target/selector API comes from Objective-C and needs the method to
         // be visible to the Objective-C runtime.
@@ -309,17 +309,17 @@ class StatsManager: ObservableObject {
 
     // MARK: - Notification Handler
 
-    /// Called whenever a listen session ends — either the song finished
+    /// Called whenever a listen session ends, either the song finished
     /// naturally OR the user skipped away from it partway through.
     ///
     /// RECONCILIATION NOTE: this used to only fire on natural completion, so
-    /// StatsManager never learned about songs the user skipped — silently
+    /// StatsManager never learned about songs the user skipped, silently
     /// biasing "most played"/recommendation data toward whatever happened to
     /// autoplay to the end. AudioPlayer now reports every session exactly
     /// once (see `finalizeCurrentSession` there), skipped or not, with the
     /// real elapsed listening time.
     @objc private func songDidFinish(_ notification: Notification) {
-        // Notifications carry an optional, untyped `userInfo` dictionary —
+        // Notifications carry an optional, untyped `userInfo` dictionary,
         // the poster (AudioPlayer) packs values into it as `[String: Any]`,
         // and we have to unpack and type-check each one here. The single
         // `guard ... else { return }` bails out silently if any expected key
@@ -342,7 +342,7 @@ class StatsManager: ObservableObject {
     /// Record a listen session.
     ///
     /// Only records if the song was played for at least 10 seconds (filters
-    /// out accidental taps) — this threshold now also applies to skips, so a
+    /// out accidental taps), this threshold now also applies to skips, so a
     /// song tapped and immediately skipped after 2 seconds still isn't
     /// counted as a "listen" (though it's still visible via `.songWasSkipped`
     /// to any future skip-specific consumer that wants finer granularity).

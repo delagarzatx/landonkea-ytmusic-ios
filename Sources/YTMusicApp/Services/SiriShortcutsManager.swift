@@ -10,10 +10,10 @@ import SwiftUI     // @MainActor
 /// suggest it automatically. Users can also assign voice commands in
 /// Settings → Siri & Search → Shortcuts.
 ///
-/// This is a lightweight approach — no custom intent definition files needed.
+/// This is a lightweight approach, no custom intent definition files needed.
 /// We use NSUserActivity which is the simplest form of Siri integration.
 ///
-/// This is a `struct` with only `static` members — it never gets
+/// This is a `struct` with only `static` members, it never gets
 /// instantiated (nobody ever writes `SiriShortcutsManager()`). It exists
 /// purely as a namespace grouping related functions together, the same way
 /// `Foundation`'s `FileManager.default` groups file operations.
@@ -26,7 +26,7 @@ import SwiftUI     // @MainActor
 @MainActor
 struct SiriShortcutsManager {
 
-    /// The activity type identifier — must be unique to the app.
+    /// The activity type identifier, must be unique to the app.
     /// Reverse domain format: com.yourcompany.appname.action
     static let playMusicActivityType = "com.landonkea.ytmusic.play"
 
@@ -86,8 +86,8 @@ struct SiriShortcutsManager {
 
     // MARK: - Private Helpers
 
-    /// Builds an `NSUserActivity` — "a thing the user did that Siri/Spotlight
-    /// can learn about" — configured so it's eligible to be surfaced by both
+    /// Builds an `NSUserActivity`, "a thing the user did that Siri/Spotlight
+    /// can learn about", configured so it's eligible to be surfaced by both
     /// Siri suggestions and Spotlight search.
     ///
     /// Every donation method above needs an activity with the same
@@ -110,7 +110,7 @@ struct SiriShortcutsManager {
         // Title appears in Siri Shortcuts UI.
         activity.title = title
 
-        // Suggested invocation phrase — what the user can say to Siri.
+        // Suggested invocation phrase, what the user can say to Siri.
         activity.suggestedInvocationPhrase = invocationPhrase
 
         // Make it eligible for Siri suggestions.
@@ -124,7 +124,7 @@ struct SiriShortcutsManager {
     /// happened, and logs it for debugging. Centralizing this means every
     /// donation call is logged consistently and none can forget the
     /// `becomeCurrent()` call, which is the step that actually registers the
-    /// donation with the system — without it, none of the flags set above
+    /// donation with the system, without it, none of the flags set above
     /// have any effect.
     private static func donate(_ activity: NSUserActivity, logLabel: String) {
         activity.becomeCurrent()

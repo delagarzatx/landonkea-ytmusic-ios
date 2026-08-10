@@ -1,4 +1,4 @@
-# landonkea-ytmusic-ios — Design & Workflow
+# landonkea-ytmusic-ios - Design & Workflow
 
 ## High-Level Overview
 

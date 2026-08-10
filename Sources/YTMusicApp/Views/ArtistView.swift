@@ -15,7 +15,7 @@ struct ArtistView: View {
     // MARK: - Properties
 
     /// YouTube channel ID for this artist.
-    /// `let` means it's fixed for the lifetime of this view — set once when
+    /// `let` means it's fixed for the lifetime of this view, set once when
     /// the view is created (e.g. by whoever navigated here) and never
     /// reassigned.
     let channelId: String
@@ -23,7 +23,7 @@ struct ArtistView: View {
     /// The API client for fetching artist data.
     /// `@EnvironmentObject` reads a shared object placed into the SwiftUI
     /// "environment" further up the view hierarchy (in this app, by the
-    /// App's root view) — it lets any descendant view use the same shared
+    /// App's root view), it lets any descendant view use the same shared
     /// instance without it being passed explicitly through every view's
     /// initializer.
     @EnvironmentObject var apiClient: APIClient
@@ -34,7 +34,7 @@ struct ArtistView: View {
     /// The artist data (loaded from API).
     /// `ArtistInfo?` is an OPTIONAL: it's `nil` until the network request
     /// finishes successfully. `@State` marks this as a value owned by this
-    /// view — SwiftUI watches it and automatically redraws `body` whenever
+    /// view, SwiftUI watches it and automatically redraws `body` whenever
     /// it changes.
     @State private var artist: ArtistInfo?
 
@@ -66,7 +66,7 @@ struct ArtistView: View {
         }
         // `.task` runs this async closure automatically once, when the view
         // first appears on screen (and cancels it automatically if the view
-        // goes away before it finishes) — this is what kicks off loading.
+        // goes away before it finishes), this is what kicks off loading.
         .task {
             await loadArtist()
         }
@@ -116,7 +116,7 @@ struct ArtistView: View {
                 .multilineTextAlignment(.center)
             Button("Try Again") {
                 // `Task { ... }` starts a new concurrent unit of work so we
-                // can call the `async` function `loadArtist()` here — the
+                // can call the `async` function `loadArtist()` here, the
                 // button's action closure itself is not `async` and can't
                 // directly `await`.
                 Task { await loadArtist() }
@@ -136,7 +136,7 @@ struct ArtistView: View {
                 // Artist header
                 artistHeader(artist)
 
-                // Top songs section — only shown if there's at least one
+                // Top songs section, only shown if there's at least one
                 // song, so we don't render an empty section header.
                 if !artist.topSongs.isEmpty {
                     topSongsSection(artist.topSongs)
@@ -171,7 +171,7 @@ struct ArtistView: View {
         do {
             // `try await` awaits the network response AND, if it throws an
             // error, jumps straight to the `catch` block below instead of
-            // crashing the app — Swift's structured error handling.
+            // crashing the app, Swift's structured error handling.
             artist = try await apiClient.getArtist(channelId: channelId)
         } catch {
             errorMessage = error.localizedDescription
@@ -191,7 +191,7 @@ struct ArtistView: View {
             // going, and we `switch` over it to show the right view for
             // each case. `@unknown default` is required by Swift whenever
             // you switch over an enum from a library you don't control
-            // (like this one from SwiftUI) — it's a safety net that handles
+            // (like this one from SwiftUI), it's a safety net that handles
             // any future case Apple might add without breaking this code.
             AsyncImage(url: URL(string: artist.thumbnailUrl)) { phase in
                 switch phase {
@@ -223,7 +223,7 @@ struct ArtistView: View {
                 .fontWeight(.bold)
                 .multilineTextAlignment(.center)
             
-            // Subscriber count — optional, so only shown if the API
+            // Subscriber count, optional, so only shown if the API
             // actually returned one.
             if let subscribers = artist.subscriberCount {
                 Text(subscribers)
@@ -235,7 +235,7 @@ struct ArtistView: View {
             // `if let description = artist.description, !description.isEmpty`
             // chains two conditions: first unwrap the optional `description`,
             // THEN (only if that succeeded) also check it isn't an empty
-            // string — both must be true for the `Text` to appear.
+            // string, both must be true for the `Text` to appear.
             if let description = artist.description, !description.isEmpty {
                 Text(description)
                     .font(.caption)
@@ -266,7 +266,7 @@ struct ArtistView: View {
 
             // Song list.
             // `songs.prefix(10)` takes at most the first 10 songs (fewer if
-            // the artist has less than 10) — we only ever show a "top 10",
+            // the artist has less than 10), we only ever show a "top 10",
             // not the whole catalog. `.enumerated()` pairs each song with
             // its index (0, 1, 2, ...); wrapping in `Array(...)` gives
             // `ForEach` a concrete collection to iterate. `id: \.element.id`
@@ -295,7 +295,7 @@ struct ArtistView: View {
 
                 // Thumbnail.
                 // `phase.image` is an optional `Image?` that's non-nil only
-                // once the download succeeds — this `if let` covers both
+                // once the download succeeds, this `if let` covers both
                 // the "still loading" and "failed" cases with one fallback.
                 AsyncImage(url: URL(string: song.thumbnailUrl)) { phase in
                     if let image = phase.image {
@@ -366,13 +366,13 @@ struct ArtistView: View {
                 HStack(spacing: 16) {
                     // `ForEach(albums)` iterates the album list directly
                     // (no need for `.enumerated()` here since we don't use
-                    // the index) — this works because `AlbumInfo` conforms
+                    // the index), this works because `AlbumInfo` conforms
                     // to `Identifiable`, so `ForEach` can find a stable `id`
                     // on each element automatically without us specifying one.
                     ForEach(albums) { album in
                         // `NavigationLink` makes its content tappable and,
                         // when tapped, pushes `destination` onto the current
-                        // `NavigationStack` — here, another `AlbumView` for
+                        // `NavigationStack`, here, another `AlbumView` for
                         // whichever album was tapped.
                         NavigationLink(destination: AlbumView(browseId: album.id)) {
                             albumCard(album)
@@ -432,7 +432,7 @@ struct ArtistView: View {
 
     /// Horizontal carousel of related/similar artists.
     ///
-    /// Each card navigates to ANOTHER `ArtistView` for that related artist —
+    /// Each card navigates to ANOTHER `ArtistView` for that related artist,
     /// this is a "recursive" navigation: the same screen type can push
     /// another instance of itself onto the navigation stack (e.g. Artist A
     /// → related Artist B → related Artist C, indefinitely). SwiftUI/iOS
@@ -456,7 +456,7 @@ struct ArtistView: View {
                     // `ArtistInfo` conforms to (i.e. implements the
                     // requirements of) the `Identifiable` protocol, which is
                     // why `ForEach(artists)` can identify each row without
-                    // us writing an explicit `id:` parameter — "protocol
+                    // us writing an explicit `id:` parameter, "protocol
                     // conformance" is what lets generic SwiftUI APIs like
                     // `ForEach` work with many different model types.
                     ForEach(artists) { relatedArtist in
@@ -524,7 +524,7 @@ struct ArtistView: View {
                 duration: info.duration
             )
         } catch {
-            // Log rather than show an error UI — the user is mid-tap on a
+            // Log rather than show an error UI, the user is mid-tap on a
             // list, so a console message is enough; a full error screen
             // here would be disruptive for what's usually a transient
             // network hiccup.

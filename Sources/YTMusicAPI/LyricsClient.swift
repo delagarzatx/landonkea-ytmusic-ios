@@ -4,28 +4,28 @@ import Foundation
 /// in sequence.
 ///
 /// PROVIDER CHAIN:
-/// 1. lrclib.net — tried first. Free, no auth, and the only one of the two
+/// 1. lrclib.net, tried first. Free, no auth, and the only one of the two
 ///    that can return SYNCED (timestamped) lyrics for karaoke-style
 ///    highlighting, so it's strictly preferred when it has the song.
-///    - `GET /api/get?track_name=X&artist_name=Y` — exact match lookup
-///    - `GET /api/search?q=X` — fuzzy search (used as a fallback within
+///    - `GET /api/get?track_name=X&artist_name=Y`, exact match lookup
+///    - `GET /api/search?q=X`, fuzzy search (used as a fallback within
 ///      lrclib itself, before we ever fall through to provider #2)
-/// 2. lyrics.ovh — tried only if lrclib has nothing at all (404s or
+/// 2. lyrics.ovh, tried only if lrclib has nothing at all (404s or
 ///    returns no lyrics for both the exact-match and search lookups).
-///    Also free and no auth, but plain-text only — no timestamps, so
+///    Also free and no auth, but plain-text only, no timestamps, so
 ///    songs resolved through this path never get karaoke highlighting.
 ///    Still strictly better than showing nothing.
 ///    - `GET /v1/{artist}/{title}`
 ///
-/// Both providers require NO LOGIN — everything here works anonymously.
+/// Both providers require NO LOGIN, everything here works anonymously.
 class LyricsClient {
 
     // MARK: - Properties
 
-    /// Base URL for the lrclib.net API (primary provider — supports synced lyrics).
+    /// Base URL for the lrclib.net API (primary provider, supports synced lyrics).
     private let baseURL = "https://lrclib.net/api"
 
-    /// Base URL for the lyrics.ovh API (fallback provider — plain text only).
+    /// Base URL for the lyrics.ovh API (fallback provider, plain text only).
     private let fallbackBaseURL = "https://api.lyrics.ovh/v1"
 
     /// URL session for making HTTP requests
@@ -38,7 +38,7 @@ class LyricsClient {
     /// - Parameter session: URL session to use (for testing, pass a mock).
     ///   Defaults to `NetworkCache.session` so repeated lyrics lookups for
     ///   the same track/artist are served from disk instead of re-hitting
-    ///   the lyrics providers — lyrics are GET requests and effectively
+    ///   the lyrics providers, lyrics are GET requests and effectively
     ///   immutable for a given track, unlike InnerTube's POST-only API
     ///   responses. See NetworkCache.swift for details.
     init(session: URLSession = NetworkCache.session) {
@@ -52,7 +52,7 @@ class LyricsClient {
     ///
     /// Order: lrclib exact match -> lrclib search -> lyrics.ovh. Each step
     /// only runs if the previous one came back empty (404, no lyrics field,
-    /// decode failure, or a network error) — this is a genuine fallback
+    /// decode failure, or a network error), this is a genuine fallback
     /// chain, not a replacement of one provider by another, so lrclib's
     /// synced lyrics are still preferred whenever it has the song.
     ///
@@ -74,7 +74,7 @@ class LyricsClient {
             return lyrics
         }
 
-        // Step 3: lrclib had nothing at all — try the fallback provider.
+        // Step 3: lrclib had nothing at all, try the fallback provider.
         // Plain text only (no timestamps), but better than showing nothing.
         return await fetchFromFallbackProvider(trackName: trackName, artistName: artistName)
     }
@@ -136,7 +136,7 @@ class LyricsClient {
                 return nil
             }
             
-            // Search returns an array of results — take the first one
+            // Search returns an array of results, take the first one
             let results = try JSONDecoder().decode([LrclibResponse].self, from: data)
             return results.first?.toLyrics()
         } catch {
@@ -147,8 +147,8 @@ class LyricsClient {
 
     /// Fall back to lyrics.ovh when lrclib has nothing for this song.
     ///
-    /// lyrics.ovh's API is a single, simple GET endpoint — no exact-match
-    /// vs. search distinction like lrclib, just `/v1/{artist}/{title}` —
+    /// lyrics.ovh's API is a single, simple GET endpoint, no exact-match
+    /// vs. search distinction like lrclib, just `/v1/{artist}/{title}`,
     /// and it only ever returns plain text, never timestamps. That means
     /// a song resolved through this path shows lyrics but never gets
     /// karaoke-style line highlighting; `Lyrics.hasSyncedLyrics` will be
@@ -170,7 +170,7 @@ class LyricsClient {
             let (data, response) = try await session.data(from: url)
 
             // lyrics.ovh returns 404 for songs it doesn't have, same as
-            // lrclib — that's an expected "not found," not an error to log.
+            // lrclib, that's an expected "not found," not an error to log.
             guard let httpResponse = response as? HTTPURLResponse,
                   httpResponse.statusCode == 200 else {
                 return nil
@@ -209,7 +209,7 @@ struct LyricsOvhResponse: Codable {
             trackName: trackName,
             artistName: artistName,
             plainText: plainText,
-            // lyrics.ovh never provides timestamps — this provider is a
+            // lyrics.ovh never provides timestamps, this provider is a
             // plain-text-only fallback by design.
             syncedLines: nil
         )
@@ -257,7 +257,7 @@ struct LrclibResponse: Codable {
     /// Regex explanation (a "regular expression" is a mini pattern-matching
     /// language for finding/extracting pieces of text):
     /// \[        = literal opening bracket
-    /// (\d{2})   = 2 digits for minutes (captured — "captured" means this
+    /// (\d{2})   = 2 digits for minutes (captured, "captured" means this
     ///             piece gets remembered so we can pull it out afterward)
     /// :         = literal colon
     /// (\d{2})   = 2 digits for seconds (captured)
@@ -267,7 +267,7 @@ struct LrclibResponse: Codable {
     ///
     /// This is declared once as a `static let` (shared by all instances,
     /// computed only the first time it's needed) instead of being rebuilt
-    /// inside the per-line loop below — compiling a regex pattern has a
+    /// inside the per-line loop below, compiling a regex pattern has a
     /// real cost, and re-doing it for every single lyric line would be
     /// wasteful when the pattern never changes.
     private static let syncedLinePattern = try? NSRegularExpression(
@@ -284,7 +284,7 @@ struct LrclibResponse: Codable {
     /// Returns nil if no lines could be parsed (e.g. if the format is
     /// completely unexpected).
     private func parseSyncedLyrics(_ text: String) -> [SyncedLine]? {
-        // `compactMap` transforms each element and drops any nil results —
+        // `compactMap` transforms each element and drops any nil results,
         // exactly what we want here, since parseSyncedLine returns nil for
         // lines that don't match the expected timestamp format.
         let lines = text

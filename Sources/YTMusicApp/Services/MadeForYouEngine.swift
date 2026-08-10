@@ -4,7 +4,7 @@ import Foundation
 
 /// Builds a "Made For You" style auto-generated mix from listening history.
 ///
-/// NOT an ObservableObject / NOT a long-lived shared instance — this is a
+/// NOT an ObservableObject / NOT a long-lived shared instance, this is a
 /// stateless, one-shot builder. HomeView calls `build(...)` once (in a
 /// `.task`) and stores the result in local `@State`, the same way it already
 /// handles `apiClient.getRelated` elsewhere. There's nothing here that needs
@@ -12,12 +12,12 @@ import Foundation
 ///
 /// HOW THE MIX IS BUILT (item #1 from the research pass):
 /// 1. Take the user's top artists from StatsManager (real listening data,
-///    now skip-aware — see StatsManager's reconciliation notes).
+///    now skip-aware, see StatsManager's reconciliation notes).
 /// 2. For each top artist, use one of their most-played songs as a "seed"
 ///    and fetch YouTube's own related-songs graph for it (`getRelated`).
 /// 3. Merge all the candidates, drop duplicates and anything already in the
 ///    user's top-played list (a "Made For You" mix should surface things
-///    adjacent to what's loved, not just replay it — `MostPlayedSection`
+///    adjacent to what's loved, not just replay it, `MostPlayedSection`
 ///    already covers replaying).
 /// 4. Drop anything StatsManager knows the user tends to skip.
 /// 5. Interleave (round-robin across seed artists) instead of concatenating,
@@ -42,7 +42,7 @@ enum MadeForYouEngine {
         seedArtists: Int = 5,
         limit: Int = 20
     ) async -> [SearchResult] {
-        // Need at least a little listening history to have any signal —
+        // Need at least a little listening history to have any signal,
         // below this, "Made For You" would just be noise. HomeView hides
         // the section entirely when this returns empty.
         guard stats.totalSongsPlayed >= 5 else { return [] }
@@ -61,7 +61,7 @@ enum MadeForYouEngine {
         guard !seeds.isEmpty else { return [] }
 
         // Fetch related songs for every seed concurrently rather than one
-        // at a time — this is a handful of network calls (≤ seedArtists),
+        // at a time, this is a handful of network calls (≤ seedArtists),
         // and doing them in parallel keeps the section from feeling slow to
         // populate on a cold Home screen load.
         let alreadyPlayedIds = Set(mostPlayed.map { $0.videoId })

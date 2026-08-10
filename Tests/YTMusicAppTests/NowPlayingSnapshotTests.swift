@@ -1,14 +1,14 @@
-// NowPlayingSnapshotTests.swift — Unit tests for the App-Group-shared
+// NowPlayingSnapshotTests.swift, Unit tests for the App-Group-shared
 // "now playing" snapshot used by the Home Screen / Lock Screen widget.
 //
 // WHAT'S TESTED HERE vs. NOT:
 // NowPlayingSnapshot.swift (Sources/YTMusicShared) is compiled into the
 // YTMusicApp target (see project.yml), so `@testable import YTMusicApp`
-// gives these tests direct access to it — same pattern as
+// gives these tests direct access to it, same pattern as
 // EqualizerEngineTests.swift testing EqualizerEngine.
 //
 // The widget extension's SwiftUI views (NowPlayingWidgetViews.swift) are
-// NOT covered here — they live in a separate `app-extension` target with
+// NOT covered here, they live in a separate `app-extension` target with
 // no test target of its own, and SwiftUI view bodies aren't meaningfully
 // unit-testable anyway (no assertions to make beyond "did it compile,"
 // which xcodebuild already covers). What IS worth testing, and easy to get
@@ -47,14 +47,14 @@ final class NowPlayingSnapshotTests: XCTestCase {
     }
 
     /// A fresh install (nothing ever saved) must load `.empty`, not crash
-    /// or return garbage — this is what the widget shows before the app
+    /// or return garbage, this is what the widget shows before the app
     /// has ever played a song.
     func testLoadWithNothingSavedReturnsEmpty() {
         NowPlayingSnapshotStore.clear()
         XCTAssertEqual(NowPlayingSnapshotStore.load(), .empty)
     }
 
-    /// After `clear()`, load() must fall back to `.empty` — this is the
+    /// After `clear()`, load() must fall back to `.empty`, this is the
     /// path AudioPlayer.updateWidgetSnapshot(song:) takes when playback
     /// stops entirely, so the widget doesn't keep showing a stale song
     /// forever.
@@ -78,7 +78,7 @@ final class NowPlayingSnapshotTests: XCTestCase {
 
     // MARK: - projectedElapsedSeconds
 
-    /// A paused song's elapsed time must stay frozen — no time should pass
+    /// A paused song's elapsed time must stay frozen, no time should pass
     /// just because the widget happens to redraw later.
     func testProjectedElapsedSecondsWhenPausedStaysFrozen() {
         let snapshot = NowPlayingSnapshot(
@@ -89,7 +89,7 @@ final class NowPlayingSnapshotTests: XCTestCase {
             isPlaying: false,
             elapsedSeconds: 90,
             durationSeconds: 200,
-            // Written well in the past — if pause-freezing were broken,
+            // Written well in the past, if pause-freezing were broken,
             // this would project forward by a huge amount.
             updatedAt: Date(timeIntervalSinceNow: -3600)
         )
@@ -114,7 +114,7 @@ final class NowPlayingSnapshotTests: XCTestCase {
     }
 
     /// A stale "playing" snapshot must never project past the song's
-    /// duration — otherwise a widget that hasn't refreshed in a while
+    /// duration, otherwise a widget that hasn't refreshed in a while
     /// could show >100% progress or a negative "time remaining."
     func testProjectedElapsedSecondsClampsToDuration() {
         let snapshot = NowPlayingSnapshot(
@@ -125,7 +125,7 @@ final class NowPlayingSnapshotTests: XCTestCase {
             isPlaying: true,
             elapsedSeconds: 195,
             durationSeconds: 200,
-            // Written 10 minutes ago — naive math would project ~795s.
+            // Written 10 minutes ago, naive math would project ~795s.
             updatedAt: Date(timeIntervalSinceNow: -600)
         )
         XCTAssertEqual(snapshot.projectedElapsedSeconds, 200, accuracy: 0.001)
@@ -135,7 +135,7 @@ final class NowPlayingSnapshotTests: XCTestCase {
 
     /// A song with zero/unknown duration must report 0 progress rather
     /// than dividing by zero (which in Swift's Double math yields NaN or
-    /// infinity — either would make the widget's progress bar draw
+    /// infinity, either would make the widget's progress bar draw
     /// nonsense-width rectangles).
     func testProgressFractionWithZeroDurationIsZero() {
         let snapshot = NowPlayingSnapshot(
@@ -195,7 +195,7 @@ final class NowPlayingSnapshotTests: XCTestCase {
     }
 
     /// `videoId == nil` (the "nothing playing" case) must also round-trip
-    /// correctly through JSON — Optional<String> encoding is exactly the
+    /// correctly through JSON, Optional<String> encoding is exactly the
     /// kind of thing that's easy to silently break with a hand-rolled
     /// Codable implementation, though this one relies on the compiler-
     /// synthesized conformance.

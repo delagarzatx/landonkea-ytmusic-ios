@@ -23,7 +23,7 @@ import SwiftUI
 /// getPlayCount() or getMostPlayed() to display this data.
 ///
 /// `class` vs `struct`: this is a `class` (a "reference type") rather than a
-/// `struct` ("value type") because it needs to be shared — every part of the
+/// `struct` ("value type") because it needs to be shared, every part of the
 /// app that holds a reference to this object sees the SAME data, and changes
 /// made in one place are visible everywhere else. A `struct` would instead
 /// get copied every time it's passed around, so different parts of the app
@@ -44,7 +44,7 @@ class PlayCountManager: ObservableObject {
     /// instance, so there's exactly one `shared` value for the whole app to
     /// read. It's declared as an `Optional` (`PlayCountManager?`, i.e. it can
     /// be `nil`) because the real instance is created and owned by SwiftUI as
-    /// a `@StateObject` in `YTMusicApp`, and only assigned here afterward —
+    /// a `@StateObject` in `YTMusicApp`, and only assigned here afterward,
     /// so callers must handle the brief window (and any misconfiguration)
     /// where it hasn't been set yet.
     static var shared: PlayCountManager?
@@ -54,11 +54,11 @@ class PlayCountManager: ObservableObject {
     /// Dictionary mapping video IDs to their play counts.
     /// Updated whenever a song is played.
     ///
-    /// `@Published` is a SwiftUI "property wrapper" — special syntax that
+    /// `@Published` is a SwiftUI "property wrapper", special syntax that
     /// wraps this property with extra behavior. Here, it automatically
     /// announces "this value changed!" to any SwiftUI view that's watching
     /// this object, so the UI can refresh itself. A `[String: Int]` is a
-    /// dictionary — a lookup table of key/value pairs, here mapping a song's
+    /// dictionary, a lookup table of key/value pairs, here mapping a song's
     /// video ID (the key) to how many times it's been played (the value).
     @Published var playCounts: [String: Int] = [:]
 
@@ -69,7 +69,7 @@ class PlayCountManager: ObservableObject {
     // MARK: - Private Properties
 
     /// File paths for persisting play count data.
-    /// `private` means only code inside this class can read these — outside
+    /// `private` means only code inside this class can read these, outside
     /// code (like views) has no reason to know exactly where the files live.
     private let playCountsPath: URL
     private let lastPlayedPath: URL
@@ -80,7 +80,7 @@ class PlayCountManager: ObservableObject {
     init() {
         // `FileManager` is Apple's API for working with the file system.
         // `.documentDirectory` in `.userDomainMask` is the app's private
-        // "Documents" folder — a safe, sandboxed place to store files that
+        // "Documents" folder, a safe, sandboxed place to store files that
         // should survive app restarts (and get backed up by iCloud/iTunes).
         // The API returns an array of matching URLs; there's only ever one
         // for this combination, so we grab index `[0]`.
@@ -113,7 +113,7 @@ class PlayCountManager: ObservableObject {
     func getPlayCount(videoId: String) -> Int {
         // `playCounts[videoId]` looks up the value for that key and returns
         // an Optional (it might not exist yet). `?? 0` is the "nil-coalescing
-        // operator" — if the lookup found nothing (nil), fall back to 0.
+        // operator", if the lookup found nothing (nil), fall back to 0.
         return playCounts[videoId] ?? 0
     }
 
@@ -131,11 +131,11 @@ class PlayCountManager: ObservableObject {
     /// - Returns: Array of (videoId, playCount) tuples sorted by play count
     func getMostPlayed(limit: Int = 10) -> [(videoId: String, count: Int)] {
         // This chain reads like a pipeline, each step transforming the data:
-        // 1. `sorted { ... }` — sort the dictionary's key/value pairs using
+        // 1. `sorted { ... }`, sort the dictionary's key/value pairs using
         //    a "closure" (an inline, unnamed function) that compares two
         //    entries' `.value` (play count) and puts bigger counts first.
-        // 2. `.prefix(limit)` — take only the first `limit` entries.
-        // 3. `.map { ... }` — convert each (key, value) pair into a named
+        // 2. `.prefix(limit)`, take only the first `limit` entries.
+        // 3. `.map { ... }`, convert each (key, value) pair into a named
         //    tuple `(videoId:, count:)` that's easier for callers to read.
         return playCounts
             .sorted { $0.value > $1.value } // Sort by count descending
@@ -162,7 +162,7 @@ class PlayCountManager: ObservableObject {
     private func incrementPlayCount(for videoId: String) {
         // `playCounts[videoId, default: 0]` reads the current count, or 0 if
         // this song has never been played before, then `+= 1` adds one to it
-        // and writes the result back into the dictionary — all in one line.
+        // and writes the result back into the dictionary, all in one line.
         playCounts[videoId, default: 0] += 1
     }
 
@@ -189,7 +189,7 @@ class PlayCountManager: ObservableObject {
         // crashing the app.
         do {
             // `JSONEncoder` converts Swift values into JSON-formatted binary
-            // `Data`. This only works for types that conform to `Codable` —
+            // `Data`. This only works for types that conform to `Codable`,
             // a protocol meaning "I know how to convert myself to and from
             // JSON (or similar formats)". `[String: Int]` already conforms
             // to `Codable` automatically because both `String` and `Int` do.
@@ -197,7 +197,7 @@ class PlayCountManager: ObservableObject {
             let data = try encoder.encode(playCounts)
             try data.write(to: playCountsPath)
         } catch {
-            // We deliberately don't crash the app over a failed save —
+            // We deliberately don't crash the app over a failed save,
             // losing play-count history is much less bad than a crash.
             print("Failed to save play counts: \(error)")
         }

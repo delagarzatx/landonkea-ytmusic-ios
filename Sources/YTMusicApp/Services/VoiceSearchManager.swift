@@ -55,7 +55,7 @@ class VoiceSearchManager: ObservableObject {
     /// (if using server-based recognition).
     private func requestAuthorization() {
         // [weak self]: Apple's Speech framework holds this closure only until
-        // the user responds to the permission prompt, then releases it — so this
+        // the user responds to the permission prompt, then releases it, so this
         // wouldn't be a permanent retain cycle either way. But `self` here is a
         // VoiceSearchManager that could in theory be torn down before the user
         // answers the prompt (e.g. if it were ever recreated), so capturing weakly
@@ -92,7 +92,7 @@ class VoiceSearchManager: ObservableObject {
     ///
     /// Results come in via the recognitionTask callback as the user speaks.
     /// This method is kept small by delegating each step to a single-purpose
-    /// helper below — that way each helper can be read (and tested/reasoned
+    /// helper below, that way each helper can be read (and tested/reasoned
     /// about) on its own.
     func startListening() {
         // Cancel any existing task first, so we never have two recognition
@@ -119,7 +119,7 @@ class VoiceSearchManager: ObservableObject {
             try startAudioEngine()
         } catch {
             errorMessage = "Failed to start audio engine: \(error.localizedDescription)"
-            // The engine never started, so there's nothing actively producing audio —
+            // The engine never started, so there's nothing actively producing audio,
             // but we already installed a tap and created a recognition request above.
             // Leaving those in place would be a resource leak (a dangling tap callback,
             // an in-flight request nobody will ever finish) and would leave this object
@@ -172,7 +172,7 @@ class VoiceSearchManager: ObservableObject {
     ///
     /// A "tap" is a callback that gets a copy of every audio buffer flowing
     /// through a node, without interrupting the audio itself. Here we tap the
-    /// microphone input — the "input node" — so we can forward each buffer to
+    /// microphone input, the "input node", so we can forward each buffer to
     /// the speech recognizer.
     private func installMicrophoneTap() {
         let inputNode = audioEngine.inputNode
@@ -184,13 +184,13 @@ class VoiceSearchManager: ObservableObject {
         ) { [weak self] buffer, _ in
             // [weak self] avoids a retain cycle: this closure is held by
             // audioEngine.inputNode until removeTap() is called, and
-            // audioEngine is itself owned by self — a strong capture here
+            // audioEngine is itself owned by self, a strong capture here
             // would mean self can never deallocate unless stopListening()
             // always runs first (e.g. the owning view could be dismissed
             // mid-listen without calling it).
             // Append each audio buffer to the recognition request so the
             // recognizer can process it. This runs on an audio callback thread,
-            // not the main thread — that's normal for AVAudioEngine taps.
+            // not the main thread, that's normal for AVAudioEngine taps.
             self?.recognitionRequest?.append(buffer)
         }
     }
@@ -212,7 +212,7 @@ class VoiceSearchManager: ObservableObject {
     ) {
         // [weak self]: this closure is retained by `self.recognitionTask`
         // itself (a strong reference cycle: self → recognitionTask → this
-        // closure → self) until the task completes or is cancelled — a
+        // closure → self) until the task completes or is cancelled, a
         // strong `self` here would leak the manager if it's ever
         // deallocated while a recognition task is still in flight.
         recognitionTask = recognizer.recognitionTask(with: request) { [weak self] result, error in

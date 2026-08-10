@@ -11,7 +11,7 @@ extension Notification.Name {
 
 // MARK: - Playlist Manager
 
-/// Manages local playlists — create, rename, delete, add/remove songs.
+/// Manages local playlists, create, rename, delete, add/remove songs.
 ///
 /// WHAT THIS DOES:
 /// Users can create playlists to organize their favorite songs. Playlists
@@ -32,7 +32,7 @@ extension Notification.Name {
 /// 7. Tapping a song in the playlist starts playing from that playlist
 ///
 /// This is a `class` (not a `struct`) so that a single shared instance's
-/// data is visible everywhere in the app — SwiftUI views hold a reference
+/// data is visible everywhere in the app, SwiftUI views hold a reference
 /// to this same object rather than getting their own disconnected copies.
 /// `ObservableObject` lets SwiftUI views watch it and redraw automatically
 /// when `@Published` data changes.
@@ -71,7 +71,7 @@ class PlaylistManager: ObservableObject {
     /// - Returns: The newly created playlist
     ///
     /// `@discardableResult` tells the compiler not to warn callers who
-    /// ignore the returned `Playlist` — sometimes callers just want the
+    /// ignore the returned `Playlist`, sometimes callers just want the
     /// side effect (a playlist gets created) without needing the value back.
     @discardableResult
     func createPlaylist(name: String) -> Playlist {
@@ -86,13 +86,13 @@ class PlaylistManager: ObservableObject {
         return playlist
     }
 
-    /// Create a new playlist pre-populated with a list of songs — e.g. from
+    /// Create a new playlist pre-populated with a list of songs, e.g. from
     /// QueueView's "Save Queue as Playlist" button.
     ///
     /// This exists as its own method (rather than callers doing
     /// `createPlaylist(name:)` followed by a loop of `addSong(_:to:)`)
     /// because that two-step version would trigger a disk save for every
-    /// single song (each `addSong` call ends with `savePlaylists()`) — for
+    /// single song (each `addSong` call ends with `savePlaylists()`), for
     /// a 50-song queue that's 50 redundant JSON encode+write cycles when
     /// one will do.
     ///
@@ -138,7 +138,7 @@ class PlaylistManager: ObservableObject {
     /// - Parameter playlist: The playlist to delete
     func deletePlaylist(_ playlist: Playlist) {
         // `removeAll(where:)` removes every element that matches the
-        // closure's condition — here, any playlist whose `id` matches.
+        // closure's condition, here, any playlist whose `id` matches.
         playlists.removeAll { $0.id == playlist.id }
         savePlaylists()
     }
@@ -151,7 +151,7 @@ class PlaylistManager: ObservableObject {
 
         // Re-sort BEFORE saving, so the order written to disk always
         // matches what's shown on screen. (Previously this saved first and
-        // sorted after, so the file on disk briefly held a stale order —
+        // sorted after, so the file on disk briefly held a stale order,
         // harmless today because loadPlaylists() always re-sorts on launch,
         // but easy to get wrong if that assumption ever changes, so it's
         // fixed here to do the obviously-correct thing.)
@@ -163,7 +163,7 @@ class PlaylistManager: ObservableObject {
 
     /// Add a song to a playlist.
     ///
-    /// Prevents duplicates — if the song is already in the playlist, it won't be added again.
+    /// Prevents duplicates, if the song is already in the playlist, it won't be added again.
     ///
     /// - Parameters:
     ///   - song: The NowPlaying song to add
@@ -246,14 +246,14 @@ class PlaylistManager: ObservableObject {
         do {
             let encoder = JSONEncoder()
             // Dates don't have one canonical text form, so we pick ISO 8601
-            // (e.g. "2026-08-02T10:00:00Z") — readable and precise, and it
+            // (e.g. "2026-08-02T10:00:00Z"), readable and precise, and it
             // must match the strategy used in loadPlaylists() below or dates
             // won't decode back correctly.
             encoder.dateEncodingStrategy = .iso8601
             let data = try encoder.encode(playlists)
             try data.write(to: playlistsPath)
         } catch {
-            // Swallow the error rather than crash — a failed save just means
+            // Swallow the error rather than crash, a failed save just means
             // the user's playlist changes won't survive an app restart,
             // which is unfortunate but not catastrophic.
             print("Failed to save playlists: \(error)")
@@ -261,7 +261,7 @@ class PlaylistManager: ObservableObject {
 
         // Let CloudKitSyncManager (if wired up) know playlists changed, so
         // it can push the update. Posted unconditionally (even if CloudKit
-        // sync is unavailable/unconfigured) — NotificationCenter posts with
+        // sync is unavailable/unconfigured), NotificationCenter posts with
         // no observers are a no-op, so this has zero cost when sync isn't
         // set up, e.g. in unit tests that construct PlaylistManager alone.
         NotificationCenter.default.post(name: .playlistsDidChange, object: nil)
@@ -269,7 +269,7 @@ class PlaylistManager: ObservableObject {
 
     /// Replaces `playlists` with a CloudKit-merged result and saves, without
     /// re-touching `modifiedAt` on anything (the merge already picked the
-    /// newer copy of each playlist — bumping timestamps again here would
+    /// newer copy of each playlist, bumping timestamps again here would
     /// make every future sync think local just changed, defeating the
     /// point). Called only by CloudKitSyncManager.
     func applyMergedPlaylists(_ merged: [Playlist]) {
@@ -307,7 +307,7 @@ class PlaylistManager: ObservableObject {
 ///
 /// `Identifiable` lets SwiftUI lists tell each playlist apart using its
 /// `id`. `Codable` means Swift can automatically convert this struct to and
-/// from JSON, which is how `PlaylistManager` saves/loads it above — as long
+/// from JSON, which is how `PlaylistManager` saves/loads it above, as long
 /// as every stored property is itself `Codable` (String, [NowPlaying], Date,
 /// and Bool all are).
 struct Playlist: Identifiable, Codable, Equatable {
@@ -327,7 +327,7 @@ struct Playlist: Identifiable, Codable, Equatable {
     /// Default false for backward compatibility with existing playlists.
     ///
     /// Giving this a default value (`= false`) means old playlist JSON files
-    /// saved before this property existed can still be decoded — the
+    /// saved before this property existed can still be decoded, the
     /// decoder fills in `false` for any playlist whose saved JSON doesn't
     /// contain an "isPinned" field.
     var isPinned: Bool = false
@@ -340,7 +340,7 @@ struct Playlist: Identifiable, Codable, Equatable {
     /// This is CloudKitSyncManager's conflict-resolution key: when the same
     /// playlist has diverged between two devices, whichever copy has the
     /// newer `modifiedAt` wins the merge (see `PlaylistConflictResolver` in
-    /// CloudKitSyncManager.swift). It is NOT used for anything else —
+    /// CloudKitSyncManager.swift). It is NOT used for anything else,
     /// PlaylistManager's own sort order is by `createdAt`/`isPinned` only,
     /// unchanged from before sync existed.
     var modifiedAt: Date = Date()

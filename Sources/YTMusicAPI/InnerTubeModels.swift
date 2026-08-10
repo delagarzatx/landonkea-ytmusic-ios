@@ -29,7 +29,7 @@ import Foundation
 /// ```
 ///
 /// That's 7 levels of nesting! Each level needs its own Swift struct because
-/// we can't decode arbitrary JSON — we need a struct for each object.
+/// we can't decode arbitrary JSON, we need a struct for each object.
 /// So we create one struct per nesting level (e.g. SearchResponse contains
 /// TabbedSearchResultsRenderer, which contains TabRenderer, etc.).
 ///
@@ -38,7 +38,7 @@ import Foundation
 /// Making everything optional prevents decoding crashes.
 ///
 /// These structs mirror YouTube's internal format exactly. They're NOT designed
-/// for our UI — they're designed to match the JSON. We convert them to simpler
+/// for our UI, they're designed to match the JSON. We convert them to simpler
 /// models (in Models.swift) before passing data to views.
 ///
 /// Based on the open-source Metrolist project's InnerTube models.
@@ -47,12 +47,12 @@ import Foundation
 /// Every struct below conforms to the `Codable` protocol (you'll see
 /// `: Codable` after almost every struct name). A "protocol" in Swift is
 /// a contract: conforming to it means a type promises to provide certain
-/// behavior. `Codable` is actually shorthand for two protocols combined —
+/// behavior. `Codable` is actually shorthand for two protocols combined,
 /// `Decodable` (can be built FROM data, e.g. JSON bytes → a Swift struct)
 /// and `Encodable` (can be turned INTO data, e.g. a Swift struct → JSON bytes).
 /// The huge advantage: as long as a struct's property names/types line up
 /// with the JSON shape, the Swift compiler auto-generates all the
-/// conversion code for us — we never manually write "read this JSON key,
+/// conversion code for us, we never manually write "read this JSON key,
 /// put it in this property" by hand. `JSONDecoder`/`JSONEncoder` (used in
 /// InnerTubeClient.swift) do that conversion at runtime using this
 /// compiler-generated code. This process of turning JSON text into typed

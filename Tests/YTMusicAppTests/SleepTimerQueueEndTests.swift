@@ -1,4 +1,4 @@
-// SleepTimerQueueEndTests.swift — verifies the "smart" sleep timer added
+// SleepTimerQueueEndTests.swift, verifies the "smart" sleep timer added
 // alongside the existing fixed-duration presets: `startSleepTimerAtEndOfQueue()`
 // should stop playback once the LAST song in the current queue finishes,
 // rather than after a fixed amount of time, and must override repeatMode
@@ -39,11 +39,11 @@ final class SleepTimerQueueEndTests: XCTestCase {
     ///
     /// NOTE: this deliberately does NOT reuse
     /// `AVAudioFormat(standardFormatWithSampleRate:channels:)` the way
-    /// EqualizerEngineTests does — that "standard" format is 32-bit float,
+    /// EqualizerEngineTests does, that "standard" format is 32-bit float,
     /// non-interleaved PCM, which AVAudioEngine's `scheduleFile` handles
     /// fine but which AVPlayer/AVURLAsset's Fig decoder does not reliably
     /// play in this environment (observed as a
-    /// "FigFilePlayer ... signalled err=-12864" failure — the item never
+    /// "FigFilePlayer ... signalled err=-12864" failure, the item never
     /// progresses, so it never reaches end-of-item). This path goes
     /// through `AVPlayer` (see `playSongFromLocal` in AudioPlayer.swift),
     /// so the file needs to be a canonical, widely-supported WAV: 16-bit
@@ -79,7 +79,7 @@ final class SleepTimerQueueEndTests: XCTestCase {
 
     /// Unit-level check of the countdown estimate: with a known current
     /// song's remaining time and known durations for the songs still
-    /// queued after it, `sleepTimerRemaining` should equal their sum —
+    /// queued after it, `sleepTimerRemaining` should equal their sum,
     /// this is the number shown in the Sleep Timer UI.
     func testQueueEndEstimateSumsRemainingAndUpcomingDurations() {
         let player = AudioPlayer()
@@ -107,7 +107,7 @@ final class SleepTimerQueueEndTests: XCTestCase {
     }
 
     /// `startSleepTimerAtEndOfQueue()` does nothing if there's no current
-    /// song to anchor to (e.g. an empty queue) — there's nothing sensible
+    /// song to anchor to (e.g. an empty queue), there's nothing sensible
     /// to count down or wait for.
     func testQueueEndTimerNoOpWithoutCurrentSong() {
         let player = AudioPlayer()
@@ -130,14 +130,14 @@ final class SleepTimerQueueEndTests: XCTestCase {
     /// non-mocked playback engines that call the same handleSongEnded(),
     /// but AVPlayer's "FigFilePlayer" decoder does not reliably play ANY
     /// synthesized WAV in this sandboxed test environment (fails with
-    /// "signalled err=-12864" regardless of PCM format — reproducible even
+    /// "signalled err=-12864" regardless of PCM format, reproducible even
     /// via a minimal AVPlayer smoke test) while EqualizerEngine's
     /// AVAudioEngine-based playback works fine here, as proven by the
     /// pre-existing EqualizerEngineTests. Using the EQ path keeps this a
     /// real playback integration test (not a fake), just via the playback
     /// engine that's actually exercisable in this environment; the code
     /// path being tested (queue-end override in handleSongEnded()) is
-    /// identical either way — see the "Forward 'song finished'" comment in
+    /// identical either way, see the "Forward 'song finished'" comment in
     /// AudioPlayer.startEQPlayback().
     func testStopsPlaybackAfterLastSongInQueueEnds() async throws {
         let audioURL = try makeTestAudioFile()
@@ -161,7 +161,7 @@ final class SleepTimerQueueEndTests: XCTestCase {
         )
 
         // playLocal() replaces the queue with just this one song at index
-        // 0 — reshape it into a two-song queue where the song actually
+        // 0, reshape it into a two-song queue where the song actually
         // playing is the LAST one, so the "was that the last song?" check
         // in handleSongEnded() is genuinely exercised.
         let priorSong = NowPlaying(id: "prior-song", title: "Prior", artist: "Test Artist", thumbnailUrl: "", duration: 200, audioUrl: "x")
@@ -171,7 +171,7 @@ final class SleepTimerQueueEndTests: XCTestCase {
         player.queue = [priorSong, nowPlayingSong]
         player.currentIndex = 1
 
-        // Deliberately set repeatMode to `.all` — without the queue-end
+        // Deliberately set repeatMode to `.all`, without the queue-end
         // override in handleSongEnded(), this would loop back to index 0
         // forever instead of stopping.
         player.repeatMode = .all

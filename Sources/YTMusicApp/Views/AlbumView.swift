@@ -14,14 +14,14 @@ struct AlbumView: View {
     // MARK: - Properties
 
     /// YouTube browse ID for this album.
-    /// `let` (not `var`) means this never changes after the view is created —
+    /// `let` (not `var`) means this never changes after the view is created,
     /// whoever navigates to this screen passes in the album they want to see.
     let browseId: String
 
     /// The API client for fetching album data.
     /// `@EnvironmentObject` means this object was created somewhere higher up
     /// in the view hierarchy (in this app, in the App's root) and "injected"
-    /// into the environment so any descendant view can grab it — without it
+    /// into the environment so any descendant view can grab it, without it
     /// having to be passed explicitly through every initializer in between.
     @EnvironmentObject var apiClient: APIClient
 
@@ -29,7 +29,7 @@ struct AlbumView: View {
     @EnvironmentObject var audioPlayer: AudioPlayer
 
     /// The album data (loaded from API).
-    /// `AlbumInfo?` is an OPTIONAL — it starts as `nil` (no data yet) and
+    /// `AlbumInfo?` is an OPTIONAL, it starts as `nil` (no data yet) and
     /// becomes a real `AlbumInfo` once the network request finishes.
     /// `@State` means SwiftUI owns and tracks this value: whenever it
     /// changes, SwiftUI automatically re-runs `body` to update the screen.
@@ -63,7 +63,7 @@ struct AlbumView: View {
         }
         // `.task` runs an async block automatically when this view first
         // appears (and cancels it automatically if the view disappears
-        // before it finishes) — the standard SwiftUI way to kick off a
+        // before it finishes), the standard SwiftUI way to kick off a
         // network request as soon as a screen is shown.
         .task {
             await loadAlbum()
@@ -89,7 +89,7 @@ struct AlbumView: View {
 
                 // Track list skeletons.
                 // `ForEach(0..<8)` repeats the view inside its closure 8
-                // times — `0..<8` is a Range (0 through 7). We don't care
+                // times, `0..<8` is a Range (0 through 7). We don't care
                 // about the actual number each time, so the closure's
                 // parameter is named `_` to mean "ignore this value".
                 ForEach(0..<8) { _ in
@@ -109,7 +109,7 @@ struct AlbumView: View {
 
     // MARK: - Error State
 
-    /// Shown when the network request fails — an icon, message, and a retry
+    /// Shown when the network request fails, an icon, message, and a retry
     /// button that re-runs `loadAlbum()`.
     private func errorView(_ error: String) -> some View {
         VStack(spacing: 16) {
@@ -163,7 +163,7 @@ struct AlbumView: View {
     // MARK: - Load Album
 
     /// Fetch album data from the API.
-    /// Marked `async` because it awaits a network call — `async` functions
+    /// Marked `async` because it awaits a network call, `async` functions
     /// can pause at `await` points without blocking the app's main thread,
     /// so the UI stays responsive while we wait for the response.
     private func loadAlbum() async {
@@ -173,7 +173,7 @@ struct AlbumView: View {
         do {
             // `try await` both awaits the async network call AND propagates
             // any error it throws up to the `catch` block below, instead of
-            // crashing — this is Swift's structured error handling.
+            // crashing, this is Swift's structured error handling.
             album = try await apiClient.getAlbum(browseId: browseId)
         } catch {
             errorMessage = error.localizedDescription
@@ -191,7 +191,7 @@ struct AlbumView: View {
             // This is the "phase" form of `AsyncImage`: instead of separate
             // success/placeholder closures, it gives us one closure with an
             // `AsyncImagePhase` value we can `switch` over, so we can show a
-            // different view for each of the three possible states — still
+            // different view for each of the three possible states, still
             // loading, loaded successfully, or failed (e.g. bad URL, no
             // network). `switch` must handle every possible case of an enum,
             // which is why `@unknown default` exists below: it's a safety
@@ -209,7 +209,7 @@ struct AlbumView: View {
                         .cornerRadius(12)
                         .shadow(radius: 8)
                 case .failure:
-                    // Shown if the download fails — a placeholder icon
+                    // Shown if the download fails, a placeholder icon
                     // instead of a broken image.
                     RoundedRectangle(cornerRadius: 12)
                         .fill(.secondary.opacity(0.3))
@@ -282,7 +282,7 @@ struct AlbumView: View {
             .cornerRadius(10)
             .padding(.horizontal)
         }
-        // `album.tracks` is `[SearchResult]?` — an optional array. `?.isEmpty`
+        // `album.tracks` is `[SearchResult]?`, an optional array. `?.isEmpty`
         // asks "is it empty?" only if there IS an array; if `tracks` is nil,
         // the whole expression is nil too. `?? true` is the "nil-coalescing
         // operator": it supplies a fallback value (`true`, i.e. treat a
@@ -303,7 +303,7 @@ struct AlbumView: View {
                 // tuples. `Array(...)` turns that sequence into a concrete
                 // array so `ForEach` can use it. `ForEach` is the SwiftUI
                 // view that turns a collection into a repeated row of views
-                // — one call to its closure per item. `id: \.element.id`
+                //, one call to its closure per item. `id: \.element.id`
                 // tells `ForEach` how to uniquely identify each row (using
                 // the track's own `id` property) so SwiftUI can track which
                 // row is which across UI updates, even if the list reorders.
@@ -314,7 +314,7 @@ struct AlbumView: View {
                         .padding(.leading, 80)
                 }
             } else {
-                // Empty state — shown when `album.tracks` is nil.
+                // Empty state, shown when `album.tracks` is nil.
                 VStack(spacing: 8) {
                     Image(systemName: "music.note.list")
                         .font(.system(size: 32))
@@ -377,7 +377,7 @@ struct AlbumView: View {
 
                 Spacer()
 
-                // Duration (optional — not all tracks report one)
+                // Duration (optional, not all tracks report one)
                 if let duration = track.duration {
                     Text(duration)
                         .font(.caption)
@@ -436,7 +436,7 @@ struct AlbumView: View {
                 // throws we get `nil` instead of propagating the error. We
                 // use that here so ONE track failing to resolve (e.g. a
                 // removed video) doesn't abort queuing the rest of the
-                // album — it just gets silently skipped.
+                // album, it just gets silently skipped.
                 if let nextInfo = try? await apiClient.getPlayerInfo(videoId: nextTrack.id) {
                     // Convert PlayerInfo to NowPlaying for the queue.
                     // NowPlaying is the queue's data type.

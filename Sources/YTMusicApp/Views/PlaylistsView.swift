@@ -19,9 +19,9 @@ import SwiftUI
 ///   `$` prefix (e.g. `$newPlaylistName`) turns a `@State` property into a
 ///   `Binding` that a control like `TextField` can both read and write.
 /// - **NavigationLink**: a tappable row that pushes a new screen onto the
-///   navigation stack when tapped — the standard way to drill down from a
+///   navigation stack when tapped, the standard way to drill down from a
 ///   list into a detail view in SwiftUI.
-/// - **guard**: an early-exit check — `guard condition else { return }` means
+/// - **guard**: an early-exit check, `guard condition else { return }` means
 ///   "require this to be true, otherwise stop here," keeping the rest of the
 ///   function free of extra nested `if` indentation.
 struct PlaylistsView: View {
@@ -48,11 +48,11 @@ struct PlaylistsView: View {
     // MARK: - UI Body
 
     // `body` stays short by delegating each section of the list, the
-    // toolbar, and the alert to their own computed properties below —
+    // toolbar, and the alert to their own computed properties below,
     // each one named for exactly what it shows, so the overall structure
     // of the screen is readable at a glance.
     var body: some View {
-        // ^ The main view content — SwiftUI renders this on screen
+        // ^ The main view content, SwiftUI renders this on screen
         NavigationView {
             // ^ Wraps everything in a navigation controller (top bar + titles)
             List {
@@ -101,7 +101,7 @@ struct PlaylistsView: View {
                 // ^ Check if the user has any playlists yet
                 playlistsEmptyState
             } else {
-                // ^ User has playlists — show them
+                // ^ User has playlists, show them
                 playlistRows
             }
         } header: {
@@ -149,7 +149,7 @@ struct PlaylistsView: View {
                     // ^ The visual row showing playlist name / counts
                 }
                 .contextMenu {
-                    // .contextMenu shows this menu on a long-press — an
+                    // .contextMenu shows this menu on a long-press, an
                     // alternative, discoverable way to reach the same actions
                     // as swiping.
                     // Pin/Unpin toggle
@@ -171,7 +171,7 @@ struct PlaylistsView: View {
                 }
             }
             .onDelete(perform: deletePlaylists)
-            // ^ Attach swipe-to-delete to each row — implemented below in
+            // ^ Attach swipe-to-delete to each row, implemented below in
             // `deletePlaylists(at:)`.
         }
     }
@@ -224,7 +224,7 @@ struct PlaylistsView: View {
                         }
                 }
                 .onDelete(perform: deleteDownloadedSongs)
-                // ^ Swipe-to-delete for downloaded songs — implemented below.
+                // ^ Swipe-to-delete for downloaded songs, implemented below.
             } header: {
                 // ^ Section header showing download count
                 Text("Downloads (\(offlineManager.downloads.count))")
@@ -255,14 +255,14 @@ struct PlaylistsView: View {
     ///
     /// BUG FIX: this used to loop over `indexSet` and call
     /// `playlistManager.deletePlaylist(playlistManager.playlists[index])`
-    /// inside the loop — reading `playlists[index]` fresh on every
+    /// inside the loop, reading `playlists[index]` fresh on every
     /// iteration. That's broken for multi-row deletes: deleting one playlist
     /// shrinks the `playlists` array, which shifts every later index down by
     /// one, so the next iteration deletes the wrong playlist (or, if the
     /// deleted row was near the end, indexes past the array and crashes).
     /// Instead, we snapshot the actual `Playlist` values at the given
     /// indices *before* deleting anything, then delete each one by its own
-    /// identity — which stays correct no matter what order deletions happen in.
+    /// identity, which stays correct no matter what order deletions happen in.
     /// - Parameter indexSet: the row positions the user swiped/selected to delete
     private func deletePlaylists(at indexSet: IndexSet) {
         let playlistsToDelete = indexSet.map { playlistManager.playlists[$0] }
@@ -275,7 +275,7 @@ struct PlaylistsView: View {
 
     /// Deletes the swiped-away downloaded songs from `offlineManager`.
     /// Same index-shift hazard and fix as `deletePlaylists(at:)` above and as
-    /// `DownloadsView.deleteSongs(at:)` — indices are snapshotted into actual
+    /// `DownloadsView.deleteSongs(at:)`, indices are snapshotted into actual
     /// songs before any deletion happens.
     /// - Parameter indexSet: the row positions the user swiped/selected to delete
     private func deleteDownloadedSongs(at indexSet: IndexSet) {
@@ -300,7 +300,7 @@ struct PlaylistsView: View {
             return
         }
 
-        // playLocal is async — wrap the call in a Task.
+        // playLocal is async, wrap the call in a Task.
         Task {
             // `Task { ... }` starts a new unit of asynchronous work; `await`
             // pauses just this task (not the whole app) until playLocal finishes.
@@ -315,7 +315,7 @@ struct PlaylistsView: View {
                 thumbnailUrl: song.thumbnailUrl,
                 // ^ The album art URL for the now-playing display
                 localURL: localURL,
-                // ^ The local file URL — player reads from disk, not the network
+                // ^ The local file URL, player reads from disk, not the network
                 duration: 0
                 // ^ Duration unknown for cached songs; AudioPlayer will detect it
             )
@@ -386,7 +386,7 @@ struct PlaylistRow: View {
 }
 
 #Preview {
-    // ^ Xcode preview canvas — renders this view without building the full app
+    // ^ Xcode preview canvas, renders this view without building the full app
     PlaylistsView()
         .environmentObject(PlaylistManager())
         // ^ Inject a fresh PlaylistManager for preview

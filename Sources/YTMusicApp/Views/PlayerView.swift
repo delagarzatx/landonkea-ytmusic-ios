@@ -14,7 +14,7 @@ struct PlayerView: View {
     @EnvironmentObject var audioPlayer: AudioPlayer
     
     /// `dismiss` lets us close this full-screen cover programmatically.
-    /// We get this from the SwiftUI environment — it's provided by `.fullScreenCover`.
+    /// We get this from the SwiftUI environment, it's provided by `.fullScreenCover`.
     @Environment(\.dismiss) var dismiss
     
     /// Two-way binding to the parent's `showFullPlayer` state.
@@ -56,7 +56,7 @@ struct PlayerView: View {
     /// The equalizer manager for audio effects
     @EnvironmentObject var equalizer: EqualizerManager
     
-    /// The API client — needed to re-fetch player info for download quality
+    /// The API client, needed to re-fetch player info for download quality
     @EnvironmentObject var apiClient: APIClient
     
     var body: some View {
@@ -98,30 +98,30 @@ struct PlayerView: View {
             // Transition animation when this view appears/disappears
             // .move(edge: .bottom) = slides up from the bottom edge
             .transition(.move(edge: .bottom))
-            // Related songs sheet — shows recommended songs
+            // Related songs sheet, shows recommended songs
             .sheet(isPresented: $showRelated) {
                 relatedSongsSheet(for: song)
             }
-            // Car mode sheet — large buttons for safe driving
+            // Car mode sheet, large buttons for safe driving
             .sheet(isPresented: $showCarMode) {
                 CarModeView()
                     .environmentObject(audioPlayer)
             }
-            // Sleep timer sheet — set a countdown to stop playback
+            // Sleep timer sheet, set a countdown to stop playback
             .sheet(isPresented: $showSleepTimer) {
                 SleepTimerView()
                     .environmentObject(audioPlayer)
             }
-            // Equalizer sheet — adjust audio frequencies
+            // Equalizer sheet, adjust audio frequencies
             .sheet(isPresented: $showEqualizer) {
                 EqualizerView()
                     .environmentObject(equalizer)
             }
-            // Queue sheet — view and manage the playback queue
+            // Queue sheet, view and manage the playback queue
             .sheet(isPresented: $showQueue) {
                 QueueView()
             }
-            // Playback speed picker — choose from 0.25× to 2.0×
+            // Playback speed picker, choose from 0.25× to 2.0×
             .sheet(isPresented: $showSpeedPicker) {
                 speedPickerSheet
             }
@@ -149,7 +149,7 @@ struct PlayerView: View {
     // Below, the giant body above is broken into small, single-purpose
     // computed properties and methods (some take the unwrapped `song` as a
     // parameter since they need it but don't have access to the `if let`
-    // scope from `body`). Each one returns "some View" — SwiftUI's way of
+    // scope from `body`). Each one returns "some View", SwiftUI's way of
     // saying "a specific, but unnamed, view type." Splitting things up this
     // way keeps each piece short enough to read in one glance, and is also
     // friendlier to the Swift compiler's type-checker, which can struggle
@@ -185,7 +185,7 @@ struct PlayerView: View {
     /// Top row: close button, "Now Playing" label, share, and light/dark toggle.
     private func headerBar(for song: NowPlaying) -> some View {
         HStack {
-            // Close button — chevron down icon
+            // Close button, chevron down icon
             Button(action: {
                 // Setting isShowing to false tells the parent
                 // (ContentView) to hide this full-screen cover
@@ -205,7 +205,7 @@ struct PlayerView: View {
 
             Spacer() // Pushes right button to the edge
 
-            // Share button — shares the song link via iOS share sheet
+            // Share button, shares the song link via iOS share sheet
             // ShareLink is SwiftUI's built-in way to share content.
             // It presents the standard iOS share sheet (AirDrop, Messages, etc.)
             // NOTE: The preview image is omitted because ShareLink's
@@ -214,14 +214,14 @@ struct PlayerView: View {
             ShareLink(
                 // song.id comes from the unofficial YouTube API and
                 // isn't validated as URL-safe before this point, so
-                // avoid force-unwrapping — fall back to YouTube
+                // avoid force-unwrapping, fall back to YouTube
                 // Music's homepage rather than crashing if it's ever
                 // an unexpected value. `??` is the "nil-coalescing operator":
                 // it evaluates the left side, and if that's nil, uses the
                 // right side instead. The `!` after the fallback URL is a
                 // force-unwrap, but it's safe here because the string being
                 // unwrapped is a hardcoded literal we control, not data from
-                // the network — it can never fail to parse as a URL.
+                // the network, it can never fail to parse as a URL.
                 item: URL(string: "https://music.youtube.com/watch?v=\(song.id)")
                     ?? URL(string: "https://music.youtube.com")!,
                 preview: SharePreview(song.title)
@@ -231,7 +231,7 @@ struct PlayerView: View {
                     .foregroundColor(.white)
             }
 
-            // Dark/light mode toggle — switches the player's color scheme
+            // Dark/light mode toggle, switches the player's color scheme
             Button(action: {
                 // `withAnimation` wraps a state change so SwiftUI animates
                 // the resulting UI update (here, the color scheme flip)
@@ -274,7 +274,7 @@ struct PlayerView: View {
             .cornerRadius(16)
             .shadow(radius: 10) // Drop shadow for depth
 
-            // Lyrics overlay — shown on top of album art when toggled
+            // Lyrics overlay, shown on top of album art when toggled
             if showLyrics {
                 LyricsView()
                     .frame(width: 300, height: 300)
@@ -307,7 +307,7 @@ struct PlayerView: View {
     /// Playback-position slider plus the current-time / total-duration labels.
     private var progressSection: some View {
         VStack(spacing: 4) {
-            // The Slider's value must be a Binding — a two-way connection
+            // The Slider's value must be a Binding, a two-way connection
             // between the UI and our data. A `Binding` lets a child view
             // (here, the Slider) both READ a value and WRITE a new value
             // back out, without owning the underlying storage itself. We
@@ -329,7 +329,7 @@ struct PlayerView: View {
                 )
             ) { editing in
                 // Called when user starts/stops dragging the slider
-                // Currently unused — could pause periodic updates here
+                // Currently unused, could pause periodic updates here
             }
             .tint(.white) // Color of the filled portion
             .accessibilityLabel("Song progress")
@@ -359,7 +359,7 @@ struct PlayerView: View {
                 .font(.caption)
                 .foregroundColor(.white.opacity(0.6))
 
-            // Volume slider — same pattern as the progress slider
+            // Volume slider, same pattern as the progress slider
             Slider(
                 value: Binding(
                     get: { audioPlayer.volume },
@@ -466,7 +466,7 @@ struct PlayerView: View {
     /// sleep timer, equalizer, related songs, queue, and playback speed.
     private func bottomControls(for song: NowPlaying) -> some View {
         HStack(spacing: 28) {
-            // AirPlay button — currently a placeholder
+            // AirPlay button, currently a placeholder
             Button(action: {}) {
                 Image(systemName: "airplayaudio")
                     .font(.title3)
@@ -474,7 +474,7 @@ struct PlayerView: View {
             }
             .accessibilityLabel("AirPlay")
 
-            // Lyrics button — toggles lyrics overlay
+            // Lyrics button, toggles lyrics overlay
             Button(action: {
                 showLyrics.toggle()
             }) {
@@ -484,7 +484,7 @@ struct PlayerView: View {
             }
             .accessibilityLabel(showLyrics ? "Hide lyrics" : "Show lyrics")
 
-            // Download button — saves song for offline playback
+            // Download button, saves song for offline playback
             Button(action: {
                 downloadCurrentSong()
             }) {
@@ -509,7 +509,7 @@ struct PlayerView: View {
                 return "Download song"
             }())
 
-            // Car mode button — switches to large-button UI for safe driving
+            // Car mode button, switches to large-button UI for safe driving
             Button(action: {
                 showCarMode = true
             }) {
@@ -519,7 +519,7 @@ struct PlayerView: View {
             }
             .accessibilityLabel("Car mode")
 
-            // Sleep timer button — shows timer modal for bedtime listening
+            // Sleep timer button, shows timer modal for bedtime listening
             Button(action: {
                 showSleepTimer = true
             }) {
@@ -530,11 +530,11 @@ struct PlayerView: View {
             }
             .accessibilityLabel(audioPlayer.isSleepTimerActive ? "Sleep timer active" : "Sleep timer")
 
-            // Equalizer button — opens equalizer for audio adjustments
+            // Equalizer button, opens equalizer for audio adjustments
             //
             // BUG FIX: this used to be
             //   `equalizer.isEnabled ? "slider.horizontal.3" : "slider.horizontal.3"`
-            // — both branches of that ternary (if/else expression) named the
+            //, both branches of that ternary (if/else expression) named the
             // exact same SF Symbol, so the icon could never actually change
             // no matter what `equalizer.isEnabled` was. That's a "dead
             // conditional": a condition that's evaluated but can never
@@ -552,7 +552,7 @@ struct PlayerView: View {
             }
             .accessibilityLabel("Equalizer")
 
-            // Related songs button — toggles related songs section
+            // Related songs button, toggles related songs section
             Button(action: {
                 showRelated.toggle()
             }) {
@@ -562,7 +562,7 @@ struct PlayerView: View {
             }
             .accessibilityLabel("Related songs")
 
-            // Queue button — shows the queue sheet
+            // Queue button, shows the queue sheet
             Button(action: {
                 showQueue = true
             }) {
@@ -572,7 +572,7 @@ struct PlayerView: View {
             }
             .accessibilityLabel("Queue")
 
-            // Playback speed button — opens speed picker
+            // Playback speed button, opens speed picker
             Button(action: {
                 showSpeedPicker = true
             }) {

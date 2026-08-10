@@ -18,7 +18,7 @@ import Foundation
 ///
 /// Created from YouTube's search response. Used by SearchView to display results.
 struct SearchResult: Identifiable, Hashable {
-    /// YouTube video ID (e.g. "dQw4w9WgXcQ") — used as unique identifier
+    /// YouTube video ID (e.g. "dQw4w9WgXcQ"), used as unique identifier
     let id: String
     /// Song/video title (e.g. "Bohemian Rhapsody")
     let title: String
@@ -26,7 +26,7 @@ struct SearchResult: Identifiable, Hashable {
     let artist: String
     /// URL to the thumbnail image (e.g. "https://i.ytimg.com/vi/.../mqdefault.jpg")
     let thumbnailUrl: String
-    /// Duration string (e.g. "3:45") — optional because some results (like artists) don't have one
+    /// Duration string (e.g. "3:45"), optional because some results (like artists) don't have one
     let duration: String?
     
     /// Get the best thumbnail URL (medium quality, 320x180).
@@ -36,7 +36,7 @@ struct SearchResult: Identifiable, Hashable {
     ///
     /// Available sizes:
     /// - `default.jpg` = 120x90
-    /// - `mqdefault.jpg` = 320x180 (medium quality — we use this)
+    /// - `mqdefault.jpg` = 320x180 (medium quality, we use this)
     /// - `hqdefault.jpg` = 480x360 (high quality)
     /// - `sddefault.jpg` = 640x480 (standard definition)
     /// - `maxresdefault.jpg` = 1920x1080 (max resolution, not always available)
@@ -95,10 +95,10 @@ struct BrowseItem: Identifiable, Hashable {
     /// What type of content this is.
     /// Used by views to decide how to display and handle the item.
     enum ItemType {
-        case song        // Playable song — tap to play
-        case album       // Album — tap to show track list
-        case playlist    // Playlist — tap to show songs
-        case artist      // Artist — tap to show artist page
+        case song        // Playable song, tap to play
+        case album       // Album, tap to show track list
+        case playlist    // Playlist, tap to show songs
+        case artist      // Artist, tap to show artist page
     }
 }
 
@@ -126,7 +126,7 @@ enum PlayerState {
 
 // MARK: - Now Playing
 
-/// What's currently playing — the audio player's core data model.
+/// What's currently playing, the audio player's core data model.
 ///
 /// This is a NORMALIZED representation of a song. We create this from
 /// PlayerInfo (which has extra fields like audioUrl and viewCount)
@@ -145,7 +145,7 @@ enum PlayerState {
 /// We conform to Identifiable (using the existing `id` video ID property)
 /// so ForEach can loop over [NowPlaying] directly.
 struct NowPlaying: Equatable, Codable, Identifiable {
-    /// YouTube video ID — unique identifier for this song
+    /// YouTube video ID, unique identifier for this song
     let id: String
     /// Song title (e.g. "Bohemian Rhapsody")
     let title: String
@@ -159,7 +159,7 @@ struct NowPlaying: Equatable, Codable, Identifiable {
     let audioUrl: String
     
     /// Custom equality: two NowPlaying objects are equal if they have the same ID.
-    /// This ignores title, artist, thumbnail, etc. — only the ID matters.
+    /// This ignores title, artist, thumbnail, etc., only the ID matters.
     /// This is important for queue management (finding songs by ID).
     static func == (lhs: NowPlaying, rhs: NowPlaying) -> Bool {
         return lhs.id == rhs.id
@@ -168,7 +168,7 @@ struct NowPlaying: Equatable, Codable, Identifiable {
 
 // MARK: - Artist Info
 
-/// Full artist page data — including top songs, albums, and related artists.
+/// Full artist page data, including top songs, albums, and related artists.
 struct ArtistInfo: Identifiable {
     /// YouTube channel ID (e.g. "UC...")
     let id: String
@@ -176,9 +176,9 @@ struct ArtistInfo: Identifiable {
     let name: String
     /// URL to artist's avatar/thumbnail
     let thumbnailUrl: String
-    /// Subscriber count text (e.g. "10.5M subscribers") — nil if unknown
+    /// Subscriber count text (e.g. "10.5M subscribers"), nil if unknown
     let subscriberCount: String?
-    /// Artist description/biography — nil if not available
+    /// Artist description/biography, nil if not available
     let description: String?
     /// Most popular songs by this artist (from the "Top songs" section)
     let topSongs: [SearchResult]
@@ -190,7 +190,7 @@ struct ArtistInfo: Identifiable {
 
 // MARK: - Album Info
 
-/// Album or EP data — including metadata and full track list.
+/// Album or EP data, including metadata and full track list.
 struct AlbumInfo: Identifiable {
     /// YouTube browse ID for this album (e.g. "MPREb_...")
     let id: String
@@ -198,13 +198,13 @@ struct AlbumInfo: Identifiable {
     let title: String
     /// Artist name
     let artist: String
-    /// Release year (e.g. 2024) — nil if not available
+    /// Release year (e.g. 2024), nil if not available
     let year: Int?
     /// URL to album cover art
     let thumbnailUrl: String
-    /// Number of tracks — nil if unknown
+    /// Number of tracks, nil if unknown
     let trackCount: Int?
-    /// Full track list — nil if not loaded yet
+    /// Full track list, nil if not loaded yet
     let tracks: [SearchResult]?
 }
 
@@ -212,7 +212,7 @@ struct AlbumInfo: Identifiable {
 
 /// A category on the explore page (moods, genres, new releases, etc.).
 struct ExploreCategory: Identifiable {
-    /// UUID generated automatically — not from YouTube
+    /// UUID generated automatically, not from YouTube
     let id = UUID()
     /// Category title (e.g. "New Releases", "Moods & Genres")
     let title: String

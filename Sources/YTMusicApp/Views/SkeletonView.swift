@@ -1,4 +1,4 @@
-// Import Apple's SwiftUI framework — provides View, Color, Rectangle,
+// Import Apple's SwiftUI framework, provides View, Color, Rectangle,
 // GeometryReader, Animation, and all other UI tools used here
 import SwiftUI
 
@@ -35,7 +35,7 @@ struct SkeletonView: View {
     /// The height of the skeleton element in points (e.g. 100 for a 100pt-tall placeholder)
     let height: CGFloat
 
-    /// Corner radius for rounded corners — makes the skeleton look softer by default (8pt)
+    /// Corner radius for rounded corners, makes the skeleton look softer by default (8pt)
     let cornerRadius: CGFloat
 
     /// The current phase of the shimmer animation (0.0 to 1.0).
@@ -55,19 +55,19 @@ struct SkeletonView: View {
         self.cornerRadius = cornerRadius
     }
 
-    /// The body of the skeleton view — draws the shimmering rectangle.
+    /// The body of the skeleton view, draws the shimmering rectangle.
     /// Kept small on purpose: it just lays out the base shape and attaches the
     /// moving highlight, while the gradients themselves live in their own
     /// computed properties below (`baseGradient`) and a helper method
     /// (`movingHighlight(in:)`). Splitting a view into small named pieces like
     /// this makes each piece easy to read and re-use on its own.
     var body: some View {
-        // GeometryReader is a container view that doesn't draw anything itself —
+        // GeometryReader is a container view that doesn't draw anything itself,
         // instead it hands you a `geometry` value describing the size and
         // position it was given, so its children can size themselves relative
         // to their parent instead of using a fixed number.
         GeometryReader { geometry in
-            // The base shape — a simple filled rectangle
+            // The base shape, a simple filled rectangle
             Rectangle()
                 // Fills the rectangle with the still (non-moving) gray gradient
                 .fill(baseGradient)
@@ -88,7 +88,7 @@ struct SkeletonView: View {
             // transition smoothly instead of jumping instantly to the new value.
             withAnimation(
                 Animation
-                    // Uses ease-in-out timing — starts slow, speeds up, ends slow
+                    // Uses ease-in-out timing, starts slow, speeds up, ends slow
                     .easeInOut(duration: 1.5)
                     // Repeats forever without reversing (loops back to start instantly)
                     .repeatForever(autoreverses: false)
@@ -110,7 +110,7 @@ struct SkeletonView: View {
                 colors: [
                     // Darker gray at the start (30% opacity)
                     Color.gray.opacity(0.3),
-                    // Brighter gray in the middle (50% opacity) — the "shimmer" peak
+                    // Brighter gray in the middle (50% opacity), the "shimmer" peak
                     Color.gray.opacity(0.5),
                     // Darker gray at the end (30% opacity)
                     Color.gray.opacity(0.3)
@@ -165,7 +165,7 @@ struct SkeletonView: View {
 
 /// A view modifier that shows a skeleton while loading, then reveals the real content.
 ///
-/// A `ViewModifier` is a reusable piece of view-transforming logic — like the
+/// A `ViewModifier` is a reusable piece of view-transforming logic, like the
 /// built-in `.padding()` or `.frame()` modifiers, but one you define yourself.
 /// You implement a `body(content:)` method that receives the original view
 /// (`content`) and returns a new, transformed view.
@@ -185,9 +185,9 @@ struct SkeletonModifier: ViewModifier {
     /// Height of the skeleton placeholder in points
     let height: CGFloat
 
-    /// Applies the modifier to the content — replaces with skeleton or shows the real content
+    /// Applies the modifier to the content, replaces with skeleton or shows the real content
     /// - Parameter content: The original view that this modifier is applied to.
-    ///   `Content` is a placeholder type supplied automatically by SwiftUI —
+    ///   `Content` is a placeholder type supplied automatically by SwiftUI,
     ///   it stands for "whatever view this modifier gets attached to."
     /// - Returns: Either a SkeletonView or the original content
     func body(content: Content) -> some View {
@@ -204,7 +204,7 @@ struct SkeletonModifier: ViewModifier {
 // Extends the View protocol so every view gets the .skeleton() modifier.
 // An `extension` adds new functionality to an existing type (here, the
 // built-in `View` protocol) without needing to edit that type's original
-// definition — this is how SwiftUI lets every view in the app gain a custom
+// definition, this is how SwiftUI lets every view in the app gain a custom
 // `.skeleton(...)` modifier just by importing this file.
 extension View {
     /// Show a skeleton placeholder while content is loading.
@@ -227,7 +227,7 @@ extension View {
 /// Used in HomeView while the API is fetching data.
 /// Mimics the layout of the real content so the user knows what to expect.
 struct SkeletonSection: View {
-    /// The body of the skeleton section — a vertical stack with header + horizontal cards.
+    /// The body of the skeleton section, a vertical stack with header + horizontal cards.
     /// Kept to just two lines by delegating to `sectionHeader` and `cardsRow`
     /// below, so each part can be read (and changed) independently.
     var body: some View {
@@ -238,14 +238,14 @@ struct SkeletonSection: View {
         }
     }
 
-    /// Section header skeleton — a short wide rectangle standing in for the section title.
+    /// Section header skeleton, a short wide rectangle standing in for the section title.
     private var sectionHeader: some View {
         SkeletonView(width: 150, height: 20, cornerRadius: 4)
             // Adds horizontal padding to match the real content's layout
             .padding(.horizontal)
     }
 
-    /// Horizontal, scrollable row of card skeletons — mimics the real content's carousel.
+    /// Horizontal, scrollable row of card skeletons, mimics the real content's carousel.
     private var cardsRow: some View {
         // ScrollView(.horizontal) makes its contents scroll sideways instead
         // of the default up/down; `showsIndicators: false` hides the little
@@ -268,14 +268,14 @@ struct SkeletonSection: View {
         }
     }
 
-    /// A single card skeleton — album art placeholder above title/artist placeholders.
+    /// A single card skeleton, album art placeholder above title/artist placeholders.
     private var cardSkeleton: some View {
         VStack(alignment: .leading, spacing: 6) {
-            // Album art skeleton — a square placeholder (120x120)
+            // Album art skeleton, a square placeholder (120x120)
             SkeletonView(width: 120, height: 120, cornerRadius: 8)
-            // Title skeleton — a wide thin rectangle for the song name
+            // Title skeleton, a wide thin rectangle for the song name
             SkeletonView(width: 100, height: 12, cornerRadius: 4)
-            // Artist skeleton — a narrower thin rectangle for the artist name
+            // Artist skeleton, a narrower thin rectangle for the artist name
             SkeletonView(width: 80, height: 10, cornerRadius: 4)
         }
     }
@@ -283,7 +283,7 @@ struct SkeletonSection: View {
 
 // MARK: - Preview
 
-/// A preview provider for Xcode's Canvas — shows what skeleton views look like at design time
+/// A preview provider for Xcode's Canvas, shows what skeleton views look like at design time
 #Preview {
     // A vertical stack showing the two skeleton types side-by-side
     VStack(spacing: 20) {

@@ -1,4 +1,4 @@
-// NowPlayingWidgetViews.swift — The actual per-size visual layouts for the
+// NowPlayingWidgetViews.swift, The actual per-size visual layouts for the
 // Now Playing widget. Split out from NowPlayingWidget.swift (the
 // configuration) so each layout stays small and easy to scan on its own,
 // mirroring the "one small computed property per section" style used
@@ -9,7 +9,7 @@ import WidgetKit
 
 // MARK: - Home Screen: Small
 
-/// The `.systemSmall` layout — a square card: artwork fills the top, title
+/// The `.systemSmall` layout, a square card: artwork fills the top, title
 /// / artist / a thin progress bar sit below.
 struct SmallNowPlayingView: View {
     let entry: NowPlayingEntry
@@ -44,7 +44,7 @@ struct SmallNowPlayingView: View {
 
 // MARK: - Home Screen: Medium
 
-/// The `.systemMedium` layout — artwork on the left, song info + a play/pause
+/// The `.systemMedium` layout, artwork on the left, song info + a play/pause
 /// glyph and progress bar on the right (wider format, so text doesn't need
 /// to be as tightly truncated as the small size).
 struct MediumNowPlayingView: View {
@@ -90,7 +90,7 @@ struct MediumNowPlayingView: View {
 
 // MARK: - Lock Screen: Rectangular
 
-/// The `.accessoryRectangular` Lock Screen layout — text-only (system
+/// The `.accessoryRectangular` Lock Screen layout, text-only (system
 /// renders Lock Screen widgets in a single tint color, so artwork wouldn't
 /// read as anything but a gray blob; showing text + a glyph instead follows
 /// Apple's own Lock Screen widget guidance).
@@ -122,7 +122,7 @@ struct LockScreenRectangularView: View {
 
 // MARK: - Lock Screen: Circular
 
-/// The `.accessoryCircular` Lock Screen layout — a ring showing playback
+/// The `.accessoryCircular` Lock Screen layout, a ring showing playback
 /// progress around a play/pause glyph, similar to a battery/timer complication.
 struct LockScreenCircularView: View {
     let entry: NowPlayingEntry
@@ -140,7 +140,7 @@ struct LockScreenCircularView: View {
 
 /// Album artwork, or a stylized "no artwork" fallback (matches the app's
 /// grey-box placeholder convention used elsewhere, e.g. DownloadRow's
-/// thumbnail placeholder) when the entry has no image bytes — either
+/// thumbnail placeholder) when the entry has no image bytes, either
 /// nothing is playing, or the fetch in NowPlayingProvider failed/timed out.
 struct ArtworkImage: View {
     let data: Data?
@@ -161,7 +161,7 @@ struct ArtworkImage: View {
     }
 }
 
-/// A thin, rounded progress bar — the widget-sized equivalent of
+/// A thin, rounded progress bar, the widget-sized equivalent of
 /// PlayerView/CarModeView's GeometryReader-based progress bar, just without
 /// needing draggable seeking (widgets can't host gesture-driven controls).
 struct ProgressBar: View {
@@ -181,7 +181,7 @@ struct ProgressBar: View {
     }
 }
 
-/// Formats seconds as "M:SS" — the widget-target equivalent of
+/// Formats seconds as "M:SS", the widget-target equivalent of
 /// PlayerView/CarModeView's private `formatTime(_:)` helpers. Pulled out as
 /// a standalone enum (rather than duplicated as another private method)
 /// since two view files in this target both need it.
@@ -196,7 +196,7 @@ enum TimeFormat {
 /// The deep link every widget size opens the app with when tapped. A single
 /// shared constant so the URL string only needs to change in one place if
 /// the app ever adds real `onOpenURL` routing (e.g. straight to the full
-/// player) instead of just foregrounding to whatever's already on screen —
+/// player) instead of just foregrounding to whatever's already on screen,
 /// see the app-side scheme registration in
 /// Sources/YTMusicApp/Resources/Info.plist (CFBundleURLTypes).
 enum NowPlayingWidgetLink {

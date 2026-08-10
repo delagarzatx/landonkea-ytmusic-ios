@@ -18,14 +18,14 @@ extension Notification.Name {
 /// - Views check `isLiked(videoId:)` to show heart/filled heart icons
 ///
 /// LIMITATIONS:
-/// - Liked songs are LOCAL only — they don't sync with YouTube Music
+/// - Liked songs are LOCAL only, they don't sync with YouTube Music
 /// - If the user logs into YouTube Music in the future, we'd need to
 ///   change this to use the API's `like/like` and `like/removelike` endpoints
 ///
 /// WHAT IS "@MainActor"?
 /// This is a concurrency annotation (a rule about which thread code runs on)
 /// that pins every method and property of this class to the app's main
-/// thread — the same thread that draws the UI. It's required here because
+/// thread, the same thread that draws the UI. It's required here because
 /// this class is an `ObservableObject` whose `@Published` property is read
 /// directly by SwiftUI views, and UI updates must always happen on the main
 /// thread. Marking the whole class `@MainActor` means the compiler checks
@@ -40,21 +40,21 @@ class LikedSongsManager: ObservableObject {
     ///
     /// WHAT IS A "Set"? Unlike an Array, a Set stores each value at most
     /// once (no duplicates) and has no particular order. That's a good fit
-    /// here because "is this song liked" is a yes/no membership question —
+    /// here because "is this song liked" is a yes/no membership question,
     /// we never need duplicates or ordering, and `Set.contains` is much
     /// faster than searching through an Array.
     ///
     /// `@Published` (see EqualizerManager.swift for a fuller explanation)
     /// makes SwiftUI views re-render whenever this changes. `private(set)`
     /// means code outside this class can READ `likedIds` but can't assign
-    /// to it directly — all writes must go through the methods below, so
+    /// to it directly, all writes must go through the methods below, so
     /// every change is guaranteed to also call `save()`.
     @Published private(set) var likedIds: Set<String> = []
 
     /// When each currently-liked song was liked, keyed by video ID. This
     /// exists alongside `likedIds` purely to support CloudKit sync's
     /// conflict resolution (see `LikedSongConflictResolver` in
-    /// CloudKitSyncManager.swift) — a plain Set has no way to tell which of
+    /// CloudKitSyncManager.swift), a plain Set has no way to tell which of
     /// two devices' "liked" state is newer when merging, so each like is
     /// timestamped. `likedIds` remains the source of truth every existing
     /// view reads from; this dict is sync-only bookkeeping.
@@ -62,7 +62,7 @@ class LikedSongsManager: ObservableObject {
 
     /// Shared instance so AudioPlayer can read/toggle like state from the
     /// lock screen / Control Center "like" and "dislike" buttons, which
-    /// only have access to AudioPlayer's MPRemoteCommandCenter handlers —
+    /// only have access to AudioPlayer's MPRemoteCommandCenter handlers,
     /// not the SwiftUI environment. Mirrors the PlayCountManager.shared /
     /// EqualizerManager.shared pattern used elsewhere in the app.
     static var shared: LikedSongsManager?
@@ -74,7 +74,7 @@ class LikedSongsManager: ObservableObject {
     private let defaultsKey = "likedSongIds"
 
     /// Key for the parallel `likedTimestamps` dict (stored as
-    /// `[String: TimeInterval]` — UserDefaults' property-list storage
+    /// `[String: TimeInterval]`, UserDefaults' property-list storage
     /// doesn't support `Date` values directly inside a dictionary the way
     /// `stringArray(forKey:)` supports arrays of `String`, so timestamps
     /// are stored as `timeIntervalSince1970` doubles instead).
@@ -102,7 +102,7 @@ class LikedSongsManager: ObservableObject {
     @discardableResult
     func toggle(_ videoId: String) -> Bool {
         // Delegate to `like`/`unlike` so there's only one place that
-        // actually mutates `likedIds` and saves — keeps this function
+        // actually mutates `likedIds` and saves, keeps this function
         // focused purely on "which direction do we flip."
         if isLiked(videoId) {
             unlike(videoId)
@@ -149,14 +149,14 @@ class LikedSongsManager: ObservableObject {
     ///
     /// UserDefaults can't store a Set directly, so we convert it to an
     /// Array first. `Array(likedIds)` copies the Set's contents into a new
-    /// Array value (order is not guaranteed, but that's fine — we only
+    /// Array value (order is not guaranteed, but that's fine, we only
     /// care about membership, not order).
     private func save() {
         UserDefaults.standard.set(Array(likedIds), forKey: defaultsKey)
         let timestampsAsIntervals = likedTimestamps.mapValues { $0.timeIntervalSince1970 }
         UserDefaults.standard.set(timestampsAsIntervals, forKey: timestampsDefaultsKey)
 
-        // Let CloudKitSyncManager (if wired up) know liked songs changed —
+        // Let CloudKitSyncManager (if wired up) know liked songs changed,
         // see the matching comment in PlaylistManager.savePlaylists().
         NotificationCenter.default.post(name: .likedSongsDidChange, object: nil)
     }
@@ -193,7 +193,7 @@ class LikedSongsManager: ObservableObject {
 
     /// Replaces local liked-song state with a CloudKit-merged result and
     /// persists, without bumping timestamps (the merge already picked the
-    /// newer entry for each ID — see `LikedSongConflictResolver`). Called
+    /// newer entry for each ID, see `LikedSongConflictResolver`). Called
     /// only by CloudKitSyncManager.
     func applyMergedLikedEntries(_ merged: [LikedSongEntry]) {
         likedIds = Set(merged.map { $0.videoId })

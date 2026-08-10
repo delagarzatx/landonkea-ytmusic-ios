@@ -10,7 +10,7 @@ import Foundation
 /// lyrics while listening to a song.
 ///
 /// TRANSLATION API:
-/// Uses MyMemory (mymemory.translated.net) — a free, no-auth translation API.
+/// Uses MyMemory (mymemory.translated.net), a free, no-auth translation API.
 /// It's based on Google Translate and other open-source translation engines.
 /// Rate limit: 5000 characters/day for anonymous users (enough for ~10 songs).
 ///
@@ -34,14 +34,14 @@ class LyricsTranslator: ObservableObject {
     // MARK: - Published Properties
 
     /// Whether a translation is currently in progress.
-    /// `@Published` (a property wrapper — an annotation that adds extra
+    /// `@Published` (a property wrapper, an annotation that adds extra
     /// behavior to a stored property) automatically notifies any SwiftUI
     /// view reading this value so it can, for example, show a spinner.
     @Published var isTranslating = false
 
     /// The translated lyrics text (nil if not yet translated).
     /// It's an Optional (`String?`) because "no translation yet" is a
-    /// distinct, valid state — not an empty string.
+    /// distinct, valid state, not an empty string.
     @Published var translatedText: String?
 
     /// Error message if translation failed (nil when there is no error).
@@ -63,7 +63,7 @@ class LyricsTranslator: ObservableObject {
     func translate(_ text: String, from sourceLang: String = "en", to targetLang: String) {
         // Don't translate if already translating or text is empty.
         // `guard` exits the function immediately if the condition after it
-        // is false — it reads as "require this to be true, or bail out."
+        // is false, it reads as "require this to be true, or bail out."
         // `.trimmingCharacters(in: .whitespacesAndNewlines)` strips leading/
         // trailing spaces and newlines so a string of just blank space
         // still counts as "empty."
@@ -101,7 +101,7 @@ class LyricsTranslator: ObservableObject {
     /// WHAT IS "MainActor.run"? Our `@Published` properties are read by
     /// SwiftUI on the main thread, but this method may be called from a
     /// background context after an `await`. `MainActor.run` hops back onto
-    /// the main thread (actor isolation — a Swift mechanism that confines a
+    /// the main thread (actor isolation, a Swift mechanism that confines a
     /// piece of state to one specific thread/context to avoid data races)
     /// before touching them.
     private func applyTranslationResult(_ result: Result<String, Error>) async {
@@ -129,10 +129,10 @@ class LyricsTranslator: ObservableObject {
         to targetLang: String
     ) async -> [SyncedLine] {
         // Combine all line texts into one string (separated by newlines).
-        // This is more efficient than translating each line individually —
+        // This is more efficient than translating each line individually,
         // one network request instead of dozens.
         // `lines.map(\.text)` extracts just the `text` field from every
-        // SyncedLine (this `\.text` syntax is a "key path" — a shorthand
+        // SyncedLine (this `\.text` syntax is a "key path", a shorthand
         // way to say "for each element, read its .text property").
         let combinedText = lines.map(\.text).joined(separator: "\n")
 
@@ -218,7 +218,7 @@ class LyricsTranslator: ObservableObject {
 
     /// Perform the actual network request and return the raw response body.
     ///
-    /// WHAT IS "URLSession"? It's iOS's built-in HTTP client — the object
+    /// WHAT IS "URLSession"? It's iOS's built-in HTTP client, the object
     /// responsible for actually sending requests over the network and
     /// receiving responses. `.shared` is a ready-to-use default instance
     /// suitable for simple one-off requests like this.
@@ -253,7 +253,7 @@ class LyricsTranslator: ObservableObject {
 
         // The API can return HTTP 200 but still signal failure inside the
         // JSON body (responseStatus != 200), or omit the translated text
-        // entirely — both are treated as "no usable result."
+        // entirely, both are treated as "no usable result."
         guard result.responseStatus == 200,
               let translatedText = result.responseData?.translatedText else {
             throw TranslationError.noResult
@@ -292,7 +292,7 @@ class LyricsTranslator: ObservableObject {
 /// These two structs mirror the JSON shape MyMemory sends back, e.g.:
 /// `{"responseData": {"translatedText": "...", "match": 0.9}, "responseStatus": 200}`
 /// Conforming to `Codable` means `JSONDecoder` can build one of these
-/// automatically from raw JSON bytes — we don't have to parse it by hand.
+/// automatically from raw JSON bytes, we don't have to parse it by hand.
 struct TranslationResponse: Codable {
     let responseData: TranslationData?
     let responseStatus: Int

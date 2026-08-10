@@ -1,4 +1,4 @@
-// Import Apple's SwiftUI framework — provides all the UI building blocks
+// Import Apple's SwiftUI framework, provides all the UI building blocks
 // like View, Text, Image, Button, VStack, etc.
 import SwiftUI
 
@@ -10,53 +10,53 @@ import SwiftUI
 /// provides quick actions like share, add to playlist, and download.
 /// Presented as a sheet when the user taps "Song Info" in a context menu.
 ///
-/// NOTE ON STRUCTURE: SwiftUI views are "declarative" — instead of writing
+/// NOTE ON STRUCTURE: SwiftUI views are "declarative", instead of writing
 /// step-by-step instructions for how to draw the screen, you describe WHAT
 /// the screen should look like for the current data, and SwiftUI figures out
 /// how to draw (and redraw) it. A `View` in this codebase is usually a
-/// `struct` (a lightweight value type) that conforms to the `View` protocol —
+/// `struct` (a lightweight value type) that conforms to the `View` protocol,
 /// meaning it promises to provide a `body` computed property describing its
 /// contents. To keep any single `body` from becoming a giant wall of code,
 /// this file breaks the screen into several small computed properties (like
-/// `albumArtSection`, `statsSection`, etc.) that each return "some View" —
-/// a piece of UI — which `body` then assembles like puzzle pieces.
+/// `albumArtSection`, `statsSection`, etc.) that each return "some View",
+/// a piece of UI, which `body` then assembles like puzzle pieces.
 struct SongDetailView: View {
 
-    /// The YouTube video ID — a unique string that identifies this video on YouTube
+    /// The YouTube video ID, a unique string that identifies this video on YouTube
     let videoId: String
 
-    /// Song title — the name of the song as displayed to the user
+    /// Song title, the name of the song as displayed to the user
     let title: String
 
-    /// Artist name — the performer or band that created the song
+    /// Artist name, the performer or band that created the song
     let artist: String
 
-    /// URL to the album art thumbnail — a web address pointing to the cover image
+    /// URL to the album art thumbnail, a web address pointing to the cover image
     let thumbnailUrl: String
 
-    /// Duration as a display string (e.g. "3:45") — how long the song is
+    /// Duration as a display string (e.g. "3:45"), how long the song is
     let duration: String
 
-    /// The audio player — used to start playback from this view
+    /// The audio player, used to start playback from this view
     /// Injected via the SwiftUI environment so all views share one player
     @EnvironmentObject var audioPlayer: AudioPlayer
 
-    /// The offline manager — used to download songs for offline playback
+    /// The offline manager, used to download songs for offline playback
     /// Injected via the environment, handles download logic
     @EnvironmentObject var offlineManager: OfflineManager
 
-    /// The playlist manager — used to add songs to user-created playlists
+    /// The playlist manager, used to add songs to user-created playlists
     /// Injected via the environment, manages the list of playlists
     @EnvironmentObject var playlistManager: PlaylistManager
 
-    /// The play count manager — provides play count data for this song
+    /// The play count manager, provides play count data for this song
     /// Tracks how many times a song has been played and when it was last played
     @EnvironmentObject var playCountManager: PlayCountManager
 
-    /// The liked songs manager — tracks which songs the user has liked
+    /// The liked songs manager, tracks which songs the user has liked
     @EnvironmentObject var likedSongs: LikedSongsManager
 
-    /// The API client — used to fetch a real streaming/download URL.
+    /// The API client, used to fetch a real streaming/download URL.
     /// The download button needs the stream URL from the player endpoint
     /// (search results only carry display info, not the audio URL).
     @EnvironmentObject var apiClient: APIClient
@@ -64,14 +64,14 @@ struct SongDetailView: View {
     /// `@Environment(\.dismiss)` gives us a function we can call to close
     /// this view when it's presented modally (as a sheet, in our case).
     /// This is the modern, SwiftUI-native way to dismiss a view from inside
-    /// itself — you don't need the parent to pass a binding just for closing.
+    /// itself, you don't need the parent to pass a binding just for closing.
     /// We use it below in the "Done" toolbar button.
     @Environment(\.dismiss) private var dismiss
 
     /// Whether a download is currently in progress.
     /// When true, the download button shows a spinner and is disabled
     /// so the user can't start two downloads for the same song.
-    /// `@State` marks this as UI state this view owns and manages itself —
+    /// `@State` marks this as UI state this view owns and manages itself,
     /// whenever it changes, SwiftUI automatically re-renders any part of the
     /// view that reads it, so the spinner appears/disappears live.
     @State private var isDownloading = false
@@ -84,7 +84,7 @@ struct SongDetailView: View {
     /// When true, the iOS native share sheet appears so the user can share the song
     @State private var showShareSheet = false
 
-    /// The body of the view — the visual content.
+    /// The body of the view, the visual content.
     /// This computed property (a property that runs code to produce its value,
     /// rather than just storing one) is required by the `View` protocol and is
     /// what SwiftUI calls whenever it needs to know what to draw.
@@ -95,7 +95,7 @@ struct SongDetailView: View {
             ScrollView {
                 // A vertical stack that spaces its children by 24 points each.
                 // Each line below plugs in one of the small "section" computed
-                // properties defined further down this file — this keeps the
+                // properties defined further down this file, this keeps the
                 // body readable as a table of contents for the screen instead
                 // of one long nested tree of views.
                 VStack(spacing: 24) {
@@ -122,7 +122,7 @@ struct SongDetailView: View {
                         // Calls the dismiss action from the environment, which
                         // tells SwiftUI to close this sheet. (Previously this
                         // button's action was empty, which meant tapping "Done"
-                        // did nothing at all — a real bug, since the comment
+                        // did nothing at all, a real bug, since the comment
                         // claimed dismissal was "handled automatically", but
                         // nothing in this view or its presenter actually did
                         // that. `@Environment(\.dismiss)` above fixes it.)
@@ -131,7 +131,7 @@ struct SongDetailView: View {
                 }
             }
         }
-        // Playlist picker sheet — a modal that slides up from the bottom.
+        // Playlist picker sheet, a modal that slides up from the bottom.
         // `.sheet(isPresented:)` is a view modifier (a function that returns a
         // modified copy of a view) that watches a Bool `@State`/`@Binding`
         // value; when it flips to true, SwiftUI presents the given content as
@@ -149,14 +149,14 @@ struct SongDetailView: View {
                     duration: duration
                 ),
                 // Passes the binding so the picker can dismiss itself when done.
-                // `$showPlaylistPicker` is a "binding" — a two-way reference to
+                // `$showPlaylistPicker` is a "binding", a two-way reference to
                 // this view's @State value. The child view can both read it and
                 // write to it, and because it's the *same* underlying storage
                 // (not a copy), setting it to false there closes the sheet here too.
                 isPresented: $showPlaylistPicker
             )
         }
-        // Share sheet — uses the iOS native share sheet (UIActivityViewController)
+        // Share sheet, uses the iOS native share sheet (UIActivityViewController)
         .sheet(isPresented: $showShareSheet) {
             // Builds a shareable text string with the song title, artist, and YouTube link.
             // String interpolation (`\(...)`) inserts each value directly into the string.
@@ -217,7 +217,7 @@ struct SongDetailView: View {
         VStack(spacing: 8) {
             // Shows the song title in a large bold text
             Text(title)
-                // Sets the font to title2 — a medium-large system font
+                // Sets the font to title2, a medium-large system font
                 .font(.title2)
                 // Makes the text bold so it stands out
                 .fontWeight(.bold)
@@ -226,7 +226,7 @@ struct SongDetailView: View {
 
             // Shows the artist name below the title
             Text(artist)
-                // Uses the body font — the standard system font size
+                // Uses the body font, the standard system font size
                 .font(.body)
                 // Uses the secondary color (light gray) to de-emphasize it
                 .foregroundColor(.secondary)
@@ -247,7 +247,7 @@ struct SongDetailView: View {
                 .foregroundColor(.secondary)
             // The label "Duration:" followed by the actual duration value
             Text("Duration: \(duration)")
-                // Uses a subheadline font — slightly smaller than body text
+                // Uses a subheadline font, slightly smaller than body text
                 .font(.subheadline)
                 // Colors the text in the secondary (gray) color
                 .foregroundColor(.secondary)
@@ -317,9 +317,9 @@ struct SongDetailView: View {
                 artist: artist,
                 // The URL string for the album art image
                 thumbnailUrl: thumbnailUrl,
-                // Duration set to 0 here — will be populated by the player
+                // Duration set to 0 here, will be populated by the player
                 duration: 0,
-                // Audio URL is empty here — the player fetches the stream URL
+                // Audio URL is empty here, the player fetches the stream URL
                 audioUrl: ""
             )
             // Tells the audio player to add this song to the queue and start playing
@@ -345,7 +345,7 @@ struct SongDetailView: View {
         }
     }
 
-    /// Bottom row — share, download, playlist, and like side by side.
+    /// Bottom row, share, download, playlist, and like side by side.
     private var secondaryActionsRow: some View {
         // A horizontal stack containing four secondary buttons
         HStack(spacing: 12) {
@@ -356,7 +356,7 @@ struct SongDetailView: View {
         }
     }
 
-    /// Share button — opens the iOS share sheet via `showShareSheet`.
+    /// Share button, opens the iOS share sheet via `showShareSheet`.
     private var shareButton: some View {
         Button(action: {
             // Sets the state to true, which triggers the .sheet modifier
@@ -373,7 +373,7 @@ struct SongDetailView: View {
             .frame(maxWidth: .infinity)
             // Adds padding inside for a comfortable touch area
             .padding()
-            // Uses a light gray background — secondary button style
+            // Uses a light gray background, secondary button style
             .background(Color(.systemGray5))
             // Uses the primary text color (black in light mode, white in dark)
             .foregroundColor(.primary)
@@ -382,13 +382,13 @@ struct SongDetailView: View {
         }
     }
 
-    /// Download button — saves the song for offline playback.
+    /// Download button, saves the song for offline playback.
     private var downloadButton: some View {
         Button(action: {
             // Only download if the song isn't already downloaded
             // or currently being downloaded.
             // `guard` checks a condition up front and exits early (via `return`)
-            // if it's not met — it reads like "make sure all of this is true,
+            // if it's not met, it reads like "make sure all of this is true,
             // otherwise bail out", which keeps the "happy path" code below
             // free of nested `if` statements.
             guard !offlineManager.isDownloaded(videoId),
@@ -400,7 +400,7 @@ struct SongDetailView: View {
 
             // The download flow has three steps:
             // 1. Ask YouTube for a fresh stream URL (the player
-            //    endpoint returns a temporary streaming URL —
+            //    endpoint returns a temporary streaming URL,
             //    search results don't include one).
             // 2. Hand that URL to OfflineManager, which downloads
             //    the audio in the background and stores it on disk.
@@ -408,7 +408,7 @@ struct SongDetailView: View {
             //
             // `Task { ... }` starts an asynchronous unit of work. "Async" code
             // can pause at `await` points (like waiting on a network call)
-            // without blocking the rest of the app — the UI stays responsive
+            // without blocking the rest of the app, the UI stays responsive
             // while this runs in the background.
             Task {
                 do {
@@ -460,7 +460,7 @@ struct SongDetailView: View {
             .frame(maxWidth: .infinity)
             // Adds padding inside for a comfortable touch area
             .padding()
-            // Uses a light gray background — secondary button style
+            // Uses a light gray background, secondary button style
             .background(Color(.systemGray5))
             // Uses the primary text color
             .foregroundColor(.primary)
@@ -469,7 +469,7 @@ struct SongDetailView: View {
         }
     }
 
-    /// Add-to-playlist button — shows the playlist picker sheet.
+    /// Add-to-playlist button, shows the playlist picker sheet.
     private var playlistButton: some View {
         Button(action: {
             // Sets the state to true, which triggers the .sheet modifier
@@ -486,7 +486,7 @@ struct SongDetailView: View {
             .frame(maxWidth: .infinity)
             // Adds padding inside for a comfortable touch area
             .padding()
-            // Uses a light gray background — secondary button style
+            // Uses a light gray background, secondary button style
             .background(Color(.systemGray5))
             // Uses the primary text color
             .foregroundColor(.primary)
@@ -495,7 +495,7 @@ struct SongDetailView: View {
         }
     }
 
-    /// Like button — toggles like status for this song.
+    /// Like button, toggles like status for this song.
     private var likeButton: some View {
         Button(action: {
             // Toggles the like status (add/remove from liked songs)
@@ -559,7 +559,7 @@ struct SongDetailView: View {
     /// - Parameter date: An optional Date to format
     /// - Returns: A human-readable string describing when the date was
     private func formatDate(_ date: Date?) -> String {
-        // `Date?` is an "optional" Date — it can either hold a real Date value
+        // `Date?` is an "optional" Date, it can either hold a real Date value
         // or hold nothing at all (`nil`). Swift forces us to explicitly deal
         // with the "nothing" case before we can use the value, which prevents
         // a whole category of crashes common in other languages. `guard let`
@@ -600,7 +600,7 @@ struct SongDetailView: View {
             // Uses plural "days" for anything other than 1
             return "\(days) day\(days == 1 ? "" : "s") ago"
         }
-        // More than 7 days — show actual date instead of relative time
+        // More than 7 days, show actual date instead of relative time
         else {
             // Creates a DateFormatter to convert the Date into a readable string
             let formatter = DateFormatter()
@@ -620,23 +620,23 @@ struct SongDetailView: View {
 /// Lays out content horizontally: icon on the left, label in the middle, value on the right.
 struct StatRow: View {
 
-    /// The SF Symbol icon name — a string like "play.circle.fill" or "clock.fill"
+    /// The SF Symbol icon name, a string like "play.circle.fill" or "clock.fill"
     let icon: String
 
-    /// The tint color for the icon — e.g. .blue for play count, .green for last played
+    /// The tint color for the icon, e.g. .blue for play count, .green for last played
     let iconColor: Color
 
-    /// The label text (e.g. "Times Played") — describes what the stat represents
+    /// The label text (e.g. "Times Played"), describes what the stat represents
     let label: String
 
-    /// The value text (e.g. "42") — the actual statistic to display
+    /// The value text (e.g. "42"), the actual statistic to display
     let value: String
 
-    /// The body of the StatRow — a horizontal row with icon, label, and value
+    /// The body of the StatRow, a horizontal row with icon, label, and value
     var body: some View {
         // Arranges content horizontally: icon, label, spacer, value
         HStack {
-            // Icon with a tinted background — makes the stat visually distinct
+            // Icon with a tinted background, makes the stat visually distinct
             Image(systemName: icon)
                 // Applies the tint color (blue, green, etc.) to the icon
                 .foregroundColor(iconColor)
@@ -647,19 +647,19 @@ struct StatRow: View {
                 // Rounds the background's corners by 8 points
                 .cornerRadius(8)
 
-            // Label on the left — describes what this stat is
+            // Label on the left, describes what this stat is
             Text(label)
-                // Uses a subheadline font — slightly smaller than standard body text
+                // Uses a subheadline font, slightly smaller than standard body text
                 .font(.subheadline)
                 // Uses the secondary color to de-emphasize the label
                 .foregroundColor(.secondary)
 
-            // Pushes everything apart — places the label on the left and value on the right.
+            // Pushes everything apart, places the label on the left and value on the right.
             // `Spacer()` is an invisible view that expands to fill any remaining
             // space in its stack, shoving its neighbors apart.
             Spacer()
 
-            // Value on the right — the actual number or date text
+            // Value on the right, the actual number or date text
             Text(value)
                 // Uses the same subheadline font size as the label
                 .font(.subheadline)
@@ -677,15 +677,15 @@ struct StatRow: View {
 /// This lets us share text, URLs, or other content via the standard iOS share menu.
 /// Conforms to UIViewControllerRepresentable to bridge UIKit view controllers into SwiftUI.
 /// ("Conforms to a protocol" means this type promises to implement a specific
-/// set of required properties/methods — here, `makeUIViewController` and
-/// `updateUIViewController` — so SwiftUI knows how to host it.)
+/// set of required properties/methods, here, `makeUIViewController` and
+/// `updateUIViewController`, so SwiftUI knows how to host it.)
 struct ShareSheet: UIViewControllerRepresentable {
 
     /// The items to share (text, URLs, images, etc.)
     /// Passed directly to UIActivityViewController's activityItems parameter
     let items: [Any]
 
-    /// Create the UIActivityViewController — called once when the view is first created
+    /// Create the UIActivityViewController, called once when the view is first created
     /// - Parameter context: The SwiftUI context (provides environment info)
     /// - Returns: A configured UIActivityViewController instance
     func makeUIViewController(context: Context) -> UIActivityViewController {
@@ -701,23 +701,23 @@ struct ShareSheet: UIViewControllerRepresentable {
     ///   - uiViewController: The existing UIActivityViewController instance
     ///   - context: The SwiftUI context
     func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {
-        // No updates needed — the share sheet is configured once and dismissed by the system
+        // No updates needed, the share sheet is configured once and dismissed by the system
     }
 }
 
 // MARK: - Preview
 
-/// A preview provider for Xcode's Canvas — shows what the view looks like at design time
+/// A preview provider for Xcode's Canvas, shows what the view looks like at design time
 #Preview {
     // Creates a SongDetailView with sample data for previewing in Xcode
     SongDetailView(
-        // Rick Astley's famous music video ID — a recognizable test value
+        // Rick Astley's famous music video ID, a recognizable test value
         videoId: "dQw4w9WgXcQ",
         // A well-known song title for the preview
         title: "Never Gonna Give You Up",
         // The artist name for the preview
         artist: "Rick Astley",
-        // Empty thumbnail URL — will show the placeholder in previews
+        // Empty thumbnail URL, will show the placeholder in previews
         thumbnailUrl: "",
         // A sample duration string for display
         duration: "3:33"
@@ -731,10 +731,10 @@ struct ShareSheet: UIViewControllerRepresentable {
     // Injects a mock PlayCountManager into the environment for previewing
     .environmentObject(PlayCountManager())
     // Injects a mock LikedSongsManager into the environment for previewing.
-    // (Previously missing — the view reads `likedSongs` in its like button,
+    // (Previously missing, the view reads `likedSongs` in its like button,
     // so without this the Xcode preview would crash when opened.)
     .environmentObject(LikedSongsManager())
     // Injects a mock APIClient into the environment for previewing.
-    // (Also previously missing — needed by the download button's action.)
+    // (Also previously missing, needed by the download button's action.)
     .environmentObject(APIClient())
 }

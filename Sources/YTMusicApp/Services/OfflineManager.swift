@@ -1,9 +1,9 @@
 import Foundation
 import SwiftUI
 import BackgroundTasks  // BGTaskScheduler for requesting background time
-import Network          // NWPathMonitor — used to enforce "Wi-Fi Only" downloads
+import Network          // NWPathMonitor, used to enforce "Wi-Fi Only" downloads
 
-/// Manages offline song caching — downloading, storing, and playing cached songs.
+/// Manages offline song caching, downloading, storing, and playing cached songs.
 ///
 /// HOW IT WORKS:
 /// - Songs are downloaded to the app's Documents/Downloads/ directory
@@ -24,7 +24,7 @@ import Network          // NWPathMonitor — used to enforce "Wi-Fi Only" downlo
 /// LIMITATIONS:
 /// - Cached songs are deleted if the user uninstalls the app
 /// - Stream URLs expire after a few hours, so cached audio files are the only
-///   thing that persists — we can't re-download with the same URL
+///   thing that persists, we can't re-download with the same URL
 /// - Storage is limited by the device's available space
 @MainActor
 class OfflineManager: NSObject, ObservableObject {
@@ -38,8 +38,8 @@ class OfflineManager: NSObject, ObservableObject {
     @Published var downloading: [String: Double] = [:]
 
     /// Whether the device currently has a Wi-Fi (or wired) connection.
-    /// Updated by `pathMonitor` below. `download()` checks this — together
-    /// with the "Wi-Fi Only" setting — before starting any transfer.
+    /// Updated by `pathMonitor` below. `download()` checks this, together
+    /// with the "Wi-Fi Only" setting, before starting any transfer.
     @Published private(set) var isOnWifi: Bool = true
 
     /// Set whenever a download is skipped because "Wi-Fi Only" is enabled
@@ -63,7 +63,7 @@ class OfflineManager: NSObject, ObservableObject {
     /// The JSON file that stores the download index
     private let indexFilePath: URL
     
-    /// URL session for downloads — uses background config so downloads
+    /// URL session for downloads, uses background config so downloads
     /// continue when the app is in the background.
     private var session: URLSession!
     
@@ -94,7 +94,7 @@ class OfflineManager: NSObject, ObservableObject {
     
     override init() {
         // We override NSObject's init() because OfflineManager subclasses
-        // NSObject — this is required so it can conform to
+        // NSObject, this is required so it can conform to
         // URLSessionDownloadDelegate below (a protocol that, like many
         // older Apple APIs, only works with NSObject-based classes).
         // The `override` keyword is required by Swift whenever a subclass
@@ -129,13 +129,13 @@ class OfflineManager: NSObject, ObservableObject {
     /// reflects the current connection type.
     ///
     /// `NWPathMonitor`'s `pathUpdateHandler` fires on whatever queue we hand
-    /// it (never the main thread by default), so — same as the
-    /// URLSessionDownloadDelegate methods below — we hop to the main actor
+    /// it (never the main thread by default), so, same as the
+    /// URLSessionDownloadDelegate methods below, we hop to the main actor
     /// before touching the `@Published` property.
     private func startPathMonitor() {
         pathMonitor.pathUpdateHandler = { [weak self] path in
             // `.wifi` covers actual Wi-Fi; `.wiredEthernet` covers a wired
-            // adapter (common on iPad) — both are effectively "unmetered",
+            // adapter (common on iPad), both are effectively "unmetered",
             // which is what a "Wi-Fi Only" setting is really asking about.
             // Cellular (including a cellular personal hotspot) reports
             // neither, so `isOnWifi` correctly becomes false for it.
@@ -148,7 +148,7 @@ class OfflineManager: NSObject, ObservableObject {
     }
 
     /// Create the Downloads subdirectory on disk if it doesn't already exist.
-    /// `try?` converts a throwing call into an optional-discarding one —
+    /// `try?` converts a throwing call into an optional-discarding one,
     /// if directory creation fails (e.g. it already exists), we simply
     /// ignore the error rather than crashing the app at launch.
     private func prepareDownloadsDirectory() {
@@ -161,7 +161,7 @@ class OfflineManager: NSObject, ObservableObject {
     /// stop if the app is suspended or terminated by the system. A
     /// background session hands the actual networking off to a separate OS
     /// process, so downloads keep progressing even while our app isn't
-    /// running in the foreground — iOS briefly wakes the app to deliver
+    /// running in the foreground, iOS briefly wakes the app to deliver
     /// delegate callbacks when a transfer finishes.
     ///
     /// This is a `static` function (rather than an instance method) so it
@@ -178,7 +178,7 @@ class OfflineManager: NSObject, ObservableObject {
 
         // `delegateQueue: nil` tells URLSession to create its own private
         // background queue for delegate callbacks (progress, completion,
-        // etc.) rather than using the main queue — which is exactly why
+        // etc.) rather than using the main queue, which is exactly why
         // every delegate method below is `nonisolated` and hops back to
         // the main actor via `DispatchQueue.main.async` before touching
         // any of this class's main-actor-isolated state.
@@ -245,14 +245,14 @@ class OfflineManager: NSObject, ObservableObject {
 
         // BUG FIX: enforce the "Wi-Fi Only" setting (SettingsView's
         // `downloadOverWifiOnly` toggle). Previously this setting was
-        // stored but never read anywhere — downloads always went ahead
+        // stored but never read anywhere, downloads always went ahead
         // over cellular regardless of the toggle. We now check the current
         // network path before starting.
         //
         // We read the raw UserDefaults value with `object(forKey:)` rather
         // than `bool(forKey:)`: `bool(forKey:)` returns `false` for a key
         // that was never written, but SettingsView's `@AppStorage(...) =
-        // true` means the *intended* default is "on" — a user who never
+        // true` means the *intended* default is "on", a user who never
         // opens Settings should still get Wi-Fi-only protection by default,
         // not silently download over cellular.
         let wifiOnly = (UserDefaults.standard.object(forKey: "downloadOverWifiOnly") as? Bool) ?? true
@@ -274,7 +274,7 @@ class OfflineManager: NSObject, ObservableObject {
         }
 
         // Whether we succeeded or failed, this video is no longer "in
-        // progress" — always clear it so the UI stops showing a progress bar.
+        // progress", always clear it so the UI stops showing a progress bar.
         downloading.removeValue(forKey: videoId)
     }
 
@@ -289,13 +289,13 @@ class OfflineManager: NSObject, ObservableObject {
     /// "resumed" later (from the delegate callback, possibly on a totally
     /// different thread/queue), and our `await` here doesn't return until
     /// someone calls `continuation.resume(...)`. "Checked" means Swift
-    /// verifies at runtime that we resume it exactly once — resuming twice,
+    /// verifies at runtime that we resume it exactly once, resuming twice,
     /// or never resuming it at all, is a programming error it will flag.
     ///
     /// - Returns: The temporary file URL where the OS placed the downloaded data.
     private func runDownloadTask(for url: URL, videoId: String) async throws -> URL {
         try await withCheckedThrowingContinuation { continuation in
-            // Create a download task — this works with background sessions.
+            // Create a download task, this works with background sessions.
             let task = session.downloadTask(with: url)
 
             // Store the continuation associated with this task's unique ID
@@ -398,7 +398,7 @@ class OfflineManager: NSObject, ObservableObject {
 
         // Find and cancel the URLSession task.
         // `getAllTasks` is itself asynchronous (it calls back with the
-        // list of tasks once available), and — importantly — its
+        // list of tasks once available), and, importantly, its
         // completion closure runs on the URLSession's own background
         // delegate queue, NOT the main thread. Since OfflineManager is
         // `@MainActor` (all its stored properties are expected to only be
@@ -427,7 +427,7 @@ class OfflineManager: NSObject, ObservableObject {
                     // the dictionary here WITHOUT being resumed. A
                     // `CheckedContinuation` that is dropped without ever
                     // calling `resume` never lets its `await`-ing caller
-                    // continue — the `Task` inside `download(...)` (and
+                    // continue, the `Task` inside `download(...)` (and
                     // whatever code is awaiting that call) would hang
                     // forever, leaking memory and, in debug builds, tripping
                     // Swift's "leaking its continuation" runtime warning.
@@ -477,7 +477,7 @@ class OfflineManager: NSObject, ObservableObject {
     /// Also verifies that each file actually exists (in case files were deleted externally).
     private func loadIndex() {
         // If we've never saved an index before (e.g. first launch), there's
-        // nothing to load — leave `downloads` as its default empty array.
+        // nothing to load, leave `downloads` as its default empty array.
         guard FileManager.default.fileExists(atPath: indexFilePath.path) else {
             return
         }
@@ -490,7 +490,7 @@ class OfflineManager: NSObject, ObservableObject {
             decoder.dateDecodingStrategy = .iso8601
             downloads = try decoder.decode([DownloadedSong].self, from: data)
 
-            // Verify files exist — remove any entries whose files are
+            // Verify files exist, remove any entries whose files are
             // missing (e.g. deleted by iOS to free up storage, or removed
             // outside the app). `filter` keeps only the elements for which
             // the closure returns true.
@@ -553,7 +553,7 @@ extension OfflineManager: URLSessionDownloadDelegate {
         let taskId = downloadTask.taskIdentifier
 
         // BUG FIX: Apple's documentation for this delegate method is very
-        // explicit — the file at `location` is a temporary file that the
+        // explicit, the file at `location` is a temporary file that the
         // system deletes as soon as THIS METHOD RETURNS. The previous code
         // just hopped to the main actor with `DispatchQueue.main.async` and
         // resumed the continuation with `location` itself; by the time that
@@ -563,8 +563,8 @@ extension OfflineManager: URLSessionDownloadDelegate {
         // "download failed" errors.
         //
         // The fix: synchronously (before returning from this method) move
-        // the file into a location WE control — the system temp directory,
-        // under a name it won't touch — and only then hop to the main
+        // the file into a location WE control, the system temp directory,
+        // under a name it won't touch, and only then hop to the main
         // actor to resume the continuation with that safe URL.
         let safeTempURL = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString)
@@ -573,7 +573,7 @@ extension OfflineManager: URLSessionDownloadDelegate {
         do {
             try FileManager.default.moveItem(at: location, to: safeTempURL)
         } catch {
-            // Couldn't even rescue the file — report the failure instead.
+            // Couldn't even rescue the file, report the failure instead.
             DispatchQueue.main.async { [weak self] in
                 guard let self = self else { return }
                 if let continuation = self.downloadContinuations.removeValue(forKey: taskId) {
@@ -592,7 +592,7 @@ extension OfflineManager: URLSessionDownloadDelegate {
             if let continuation = self.downloadContinuations.removeValue(forKey: taskId) {
                 continuation.resume(returning: safeTempURL)
             } else {
-                // Nobody is waiting for this anymore — e.g. the download
+                // Nobody is waiting for this anymore, e.g. the download
                 // was cancelled after the file already finished. Clean up
                 // our rescued temp file ourselves so it doesn't linger on
                 // disk forever.
@@ -602,7 +602,7 @@ extension OfflineManager: URLSessionDownloadDelegate {
         }
     }
     
-    /// Called when a download task finishes for ANY reason — success or
+    /// Called when a download task finishes for ANY reason, success or
     /// failure. iOS calls this even after a successful download (in
     /// addition to `didFinishDownloadingTo` above), but with `error == nil`
     /// in that case. Since we only care about failures here (the success
@@ -668,6 +668,6 @@ struct DownloadedSong: Codable, Identifiable {
     /// When the song was downloaded
     let downloadDate: Date
     
-    /// Identifiable conformance — use videoId as the unique ID
+    /// Identifiable conformance, use videoId as the unique ID
     var id: String { videoId }
 }

@@ -19,7 +19,7 @@ struct FontSizeModifier: ViewModifier {
     ///
     /// `@AppStorage` automatically reads/writes this value to `UserDefaults`
     /// (the system's small persistent key-value store) under the key
-    /// "fontSizeScale" — so whatever the user last picked in Settings is
+    /// "fontSizeScale", so whatever the user last picked in Settings is
     /// remembered across app launches, with no manual save/load code needed.
     @AppStorage("fontSizeScale") private var scale = 1
 

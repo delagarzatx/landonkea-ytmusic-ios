@@ -17,49 +17,49 @@ import SwiftUI
 @main
 struct YTMusicApp: App {
     
-    /// The shared audio player — one instance for the entire app.
+    /// The shared audio player, one instance for the entire app.
     /// Created here, injected into the view hierarchy, and accessible
     /// from any view via @EnvironmentObject.
     /// @StateObject = "I own this object, create it once, keep it alive"
     @StateObject private var audioPlayer = AudioPlayer()
     
-    /// The API client — handles all YouTube Music API calls.
+    /// The API client, handles all YouTube Music API calls.
     /// Also created once and shared with all views.
     @StateObject private var apiClient = APIClient()
     
-    /// The offline manager — handles downloading and caching songs.
+    /// The offline manager, handles downloading and caching songs.
     /// Created once and shared with all views for offline playback.
     @StateObject private var offlineManager = OfflineManager()
     
-    /// The search history manager — saves and loads recent search queries.
+    /// The search history manager, saves and loads recent search queries.
     /// Created once and shared with SearchView for displaying history.
     @StateObject private var searchHistory = SearchHistoryManager()
     
-    /// The equalizer manager — handles audio frequency adjustments.
+    /// The equalizer manager, handles audio frequency adjustments.
     /// Created once and shared with EqualizerView and PlayerView.
     @StateObject private var equalizer = EqualizerManager()
     
-    /// The playlist manager — handles local playlists without login.
+    /// The playlist manager, handles local playlists without login.
     /// Created once and shared with PlaylistsView and context menus.
     @StateObject private var playlistManager = PlaylistManager()
     
-    /// The play count manager — tracks how many times each song was played.
+    /// The play count manager, tracks how many times each song was played.
     /// Created once and shared with AudioPlayer and HomeView.
     @StateObject private var playCountManager = PlayCountManager()
     
-    /// The voice search manager — handles speech-to-text for voice search.
+    /// The voice search manager, handles speech-to-text for voice search.
     /// Created once and shared with SearchBar for microphone input.
     @StateObject private var voiceSearch = VoiceSearchManager()
     
-    /// The liked songs manager — tracks which songs the user has liked locally.
+    /// The liked songs manager, tracks which songs the user has liked locally.
     @StateObject private var likedSongs = LikedSongsManager()
     
-    /// The stats manager — tracks listening statistics.
+    /// The stats manager, tracks listening statistics.
     @StateObject private var statsManager = StatsManager()
 
     /// CloudKit sync for playlists + liked songs only (NOT listening
-    /// stats — see CloudKitSyncManager.swift for the full scope/design
-    /// writeup). Not `@StateObject`/observed by views — nothing in the UI
+    /// stats, see CloudKitSyncManager.swift for the full scope/design
+    /// writeup). Not `@StateObject`/observed by views, nothing in the UI
     /// reads its state directly, it just quietly keeps PlaylistManager and
     /// LikedSongsManager in sync with iCloud in the background.
     private let cloudKitSyncManager = CloudKitSyncManager()
@@ -88,7 +88,7 @@ struct YTMusicApp: App {
 
         // Trigger a sync whenever playlists or liked songs change locally,
         // and once at launch to pull down anything from other devices.
-        // Both the manager and the notification handlers are @MainActor —
+        // Both the manager and the notification handlers are @MainActor,
         // hopping through Task {@MainActor in ...} keeps this correct
         // regardless of which thread NotificationCenter delivers on.
         NotificationCenter.default.addObserver(forName: .playlistsDidChange, object: nil, queue: nil) { _ in
@@ -109,7 +109,7 @@ struct YTMusicApp: App {
                 //   @EnvironmentObject var audioPlayer: AudioPlayer
                 //   @EnvironmentObject var apiClient: APIClient
                 //
-                // This is SwiftUI's dependency injection system — instead of
+                // This is SwiftUI's dependency injection system, instead of
                 // passing objects through init parameters to every view,
                 // we inject them once at the top and they're automatically
                 // available everywhere below.
@@ -145,7 +145,7 @@ struct YTMusicApp: App {
 class APIClient: ObservableObject {
     
     /// The actual API client that makes HTTP requests to YouTube.
-    /// This is NOT @Published because views don't need to observe it directly —
+    /// This is NOT @Published because views don't need to observe it directly,
     /// they observe the results stored in @Published properties below.
     let client = InnerTubeClient()
     
@@ -175,7 +175,7 @@ class APIClient: ObservableObject {
     ///
     /// - Parameters:
     ///   - query: The search term (e.g. "Bohemian Rhapsody")
-    ///   - filter: Optional filter — "songs", "videos", "albums", or nil for all
+    ///   - filter: Optional filter, "songs", "videos", "albums", or nil for all
     ///
     /// HOW IT WORKS:
     /// 1. Trim whitespace and check for empty query (prevents useless API calls)
@@ -231,7 +231,7 @@ class APIClient: ObservableObject {
     /// the other).
     ///
     /// Unlike `search`/`loadHome`, this intentionally does NOT touch
-    /// `isLoading`/`errorMessage` — HomeView's loading spinner and error
+    /// `isLoading`/`errorMessage`, HomeView's loading spinner and error
     /// banner are driven by `loadHome()`, and charts are treated as a
     /// secondary, best-effort section: if this fails, we just log it and
     /// leave `chartsSections` as-is rather than surfacing an error to the user.
@@ -247,12 +247,12 @@ class APIClient: ObservableObject {
     /// Get streaming info for a specific song (audio URL, duration, etc.).
     ///
     /// This is called before playing a song. We need it because search/browse
-    /// responses don't include the actual audio streaming URL — only the player
+    /// responses don't include the actual audio streaming URL, only the player
     /// endpoint provides that.
     ///
     /// - Parameters:
     ///   - videoId: YouTube video ID (e.g. "dQw4w9WgXcQ")
-    ///   - quality: Audio quality ("low", "medium", "high") — reads from UserDefaults
+    ///   - quality: Audio quality ("low", "medium", "high"), reads from UserDefaults
     /// - Returns: PlayerInfo with the streaming URL and metadata
     /// - Throws: If the API request fails or the video is unavailable
     func getPlayerInfo(videoId: String, quality: String? = nil) async throws -> PlayerInfo {
@@ -263,7 +263,7 @@ class APIClient: ObservableObject {
     
     /// Get streaming info for downloads using the download quality setting.
     ///
-    /// Separate from playback quality — lets users download lower quality to save storage.
+    /// Separate from playback quality, lets users download lower quality to save storage.
     func getPlayerInfoForDownload(videoId: String) async throws -> PlayerInfo {
         let quality = UserDefaults.standard.string(forKey: "downloadQuality") ?? "high"
         return try await client.getPlayer(videoId: videoId, quality: quality)

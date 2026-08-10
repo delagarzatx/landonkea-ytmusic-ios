@@ -2,7 +2,7 @@ import SwiftUI
 
 // MARK: - Main Content View
 
-/// The root view of the app — contains the tab bar and the mini player.
+/// The root view of the app, contains the tab bar and the mini player.
 ///
 /// HOW IT WORKS:
 /// - TabView at the bottom provides 4 tabs: Home, Search, Library, Settings
@@ -11,15 +11,15 @@ import SwiftUI
 /// - ZStack layers the mini player ON TOP of the TabView
 struct ContentView: View {
     
-    /// The audio player — shared across all views via the environment.
+    /// The audio player, shared across all views via the environment.
     /// @EnvironmentObject means this was created by the App and injected.
     /// Any view in the hierarchy can access it without explicit passing.
     @EnvironmentObject var audioPlayer: AudioPlayer
     
-    /// The API client — also shared across all views.
+    /// The API client, also shared across all views.
     @EnvironmentObject var apiClient: APIClient
 
-    /// The offline manager — used here only to surface a "Wi-Fi Only"
+    /// The offline manager, used here only to surface a "Wi-Fi Only"
     /// alert app-wide when a download is skipped because the device isn't
     /// on Wi-Fi (downloads can be triggered from several different screens,
     /// so this is caught once at the root instead of in every view).
@@ -43,20 +43,20 @@ struct ContentView: View {
             // TabView creates the standard iOS bottom tab bar.
             // Each child with .tabItem becomes a tab.
             TabView {
-                // Home tab — shows recommended music
+                // Home tab, shows recommended music
                 HomeView()
                     .tabItem {
                         // Label combines an icon + text (standard iOS pattern)
                         Label("Home", systemImage: "house.fill")
                     }
                 
-                // Search tab — search for songs, artists, albums
+                // Search tab, search for songs, artists, albums
                 SearchView()
                     .tabItem {
                         Label("Search", systemImage: "magnifyingglass")
                     }
                 
-                // Explore tab — new releases, moods, genres
+                // Explore tab, new releases, moods, genres
                 NavigationStack {
                     ExploreView()
                 }
@@ -64,13 +64,13 @@ struct ContentView: View {
                     Label("Discover", systemImage: "square.grid.2x2")
                 }
                 
-                // Library tab — playlists and downloads
+                // Library tab, playlists and downloads
                 PlaylistsView()
                     .tabItem {
                         Label("Library", systemImage: "square.stack.fill")
                     }
                 
-                // Settings tab — app preferences
+                // Settings tab, app preferences
                 SettingsView()
                     .tabItem {
                         Label("Settings", systemImage: "gearshape.fill")
@@ -79,7 +79,7 @@ struct ContentView: View {
             // NOTE: iPad/Mac keyboard shortcuts for playback control are
             // implemented below via hidden Buttons + .keyboardShortcut
             // (search "Space = Play/Pause"). That's the one working
-            // mechanism — .keyboardShortcut has no effect when applied
+            // mechanism, .keyboardShortcut has no effect when applied
             // directly to a container view like TabView (it only works on
             // Button/MenuItem-like views), and a previous .onKeyPress(.space)
             // handler here returned .handled without ever calling
@@ -92,7 +92,7 @@ struct ContentView: View {
             // on top of all tabs, not just one.
             //
             // `if let` checks if a song is playing. If currentSong is nil,
-            // the mini player is hidden (not just empty — completely removed).
+            // the mini player is hidden (not just empty, completely removed).
             if audioPlayer.currentSong != nil {
                 MiniPlayer()
                     // .transition defines how this view appears/disappears.
@@ -118,12 +118,12 @@ struct ContentView: View {
         }
         // .fullScreenCover = presents a view that covers the ENTIRE screen
         // (including the status bar). Unlike .sheet, it can't be swiped down
-        // to dismiss — the user must tap a button.
+        // to dismiss, the user must tap a button.
         // We pass $showFullPlayer as a binding so PlayerView can dismiss itself.
         .fullScreenCover(isPresented: $showFullPlayer) {
             PlayerView(isShowing: $showFullPlayer)
         }
-        // Queue sheet — slides up when user swipes up on mini player
+        // Queue sheet, slides up when user swipes up on mini player
         .sheet(isPresented: $showQueue) {
             QueueView()
         }
@@ -132,13 +132,13 @@ struct ContentView: View {
         .withFontScale()
         // iPad/Mac keyboard shortcuts for playback control.
         // `.background { ... }` tucks a view behind everything else in the
-        // ZStack — here we (ab)use it purely to smuggle the invisible
+        // ZStack, here we (ab)use it purely to smuggle the invisible
         // shortcut buttons into the view hierarchy so they can receive key
         // presses, not to draw anything visible.
         .background {
             keyboardShortcutButtons
         }
-        // "Wi-Fi Only" alert — shown whenever OfflineManager skips a
+        // "Wi-Fi Only" alert, shown whenever OfflineManager skips a
         // download because Wi-Fi Only is enabled and we're on cellular.
         // Bound at the root so it works no matter which screen (search
         // results, a playlist, song detail, the player) started the
@@ -164,30 +164,30 @@ struct ContentView: View {
     ///
     /// WHY HIDDEN BUTTONS INSTEAD OF SOMETHING SIMPLER:
     /// SwiftUI's `.keyboardShortcut(_:modifiers:)` view modifier only takes
-    /// effect on a `Button` (or similar tappable/menu-item view) — it does
+    /// effect on a `Button` (or similar tappable/menu-item view), it does
     /// NOT work when applied directly to a container like `TabView`. So to
     /// make Space/←/→ control playback anywhere in the app, we create three
     /// invisible buttons, give each one a keyboard shortcut, and hide them
     /// with `.hidden()`. `.hidden()` keeps a view "in" the hierarchy (so it
     /// can still receive events like key presses) while making it invisible
-    /// and non-interactive to touch/taps — unlike simply not including the
+    /// and non-interactive to touch/taps, unlike simply not including the
     /// view at all.
     ///
     /// A return type of `some View` (used throughout this file) means "this
     /// computed property returns some concrete type that conforms to the
     /// `View` protocol, but callers don't need to know exactly which type it
-    /// is" — SwiftUI calls this an "opaque return type", and it's what lets
+    /// is", SwiftUI calls this an "opaque return type", and it's what lets
     /// us break a big `body` into smaller, named pieces like this one.
     private var keyboardShortcutButtons: some View {
         // `Group` bundles multiple views together without adding any layout
-        // of its own (no extra stacking or spacing) — we need it here
+        // of its own (no extra stacking or spacing), we need it here
         // because a computed property can only return ONE view, and we have
         // three buttons to return together.
         Group {
             // Space = Play/Pause.
             // The trailing closure `{ audioPlayer.togglePlayPause() }` is
             // the button's action: the block of code that runs when the
-            // button is triggered — here, via the keyboard shortcut below
+            // button is triggered, here, via the keyboard shortcut below
             // rather than a finger tap.
             Button("") {
                 audioPlayer.togglePlayPause()
@@ -239,14 +239,14 @@ struct MiniPlayer: View {
         // braces when there IS a value, and it unwraps that value into a new,
         // non-optional local constant called `song`. If `currentSong` is nil
         // (nothing playing), the `if` is false and the whole body renders as
-        // nothing — this is how the mini player disappears when playback stops.
+        // nothing, this is how the mini player disappears when playback stops.
         if let song = audioPlayer.currentSong {
             VStack(spacing: 0) {
                 progressBar
                 songInfoRow(for: song)
             }
             // Apply the drag gesture for swiping between songs
-            .offset(x: dragOffset) // Visual feedback — slides with the finger
+            .offset(x: dragOffset) // Visual feedback, slides with the finger
             .gesture(swipeGesture)
             // White/light background for the mini player bar
             .background(Color(.systemBackground))
@@ -264,7 +264,7 @@ struct MiniPlayer: View {
         // hands that size to its closure as `geometry`. We need this here
         // because the filled portion of the bar must be a FRACTION of
         // whatever width is available (e.g. iPhone vs iPad), not a fixed
-        // number of points — something a plain `Rectangle` can't do alone.
+        // number of points, something a plain `Rectangle` can't do alone.
         GeometryReader { geometry in
             Rectangle()
                 .fill(Color.blue)
@@ -290,7 +290,7 @@ struct MiniPlayer: View {
             // is the two-closure form: the first closure receives the loaded
             // `Image` once the download succeeds, and `placeholder` supplies
             // a stand-in view to show while loading (or if the URL is bad).
-            // `URL(string: song.thumbnailUrl)` is itself an optional —
+            // `URL(string: song.thumbnailUrl)` is itself an optional,
             // `AsyncImage` handles a nil URL gracefully by just showing the
             // placeholder, so no force-unwrap is needed here.
             AsyncImage(url: URL(string: song.thumbnailUrl)) { image in
@@ -338,7 +338,7 @@ struct MiniPlayer: View {
     /// for previous track.
     ///
     /// The property type `some Gesture` works the same way `some View` does
-    /// elsewhere in this file — it says "this returns some concrete type
+    /// elsewhere in this file, it says "this returns some concrete type
     /// conforming to the `Gesture` protocol" without spelling out SwiftUI's
     /// full (and rather ugly) generic gesture type.
     private var swipeGesture: some Gesture {
@@ -362,7 +362,7 @@ struct MiniPlayer: View {
                 }
                 // Reset the drag offset (snap back to center).
                 // `withAnimation` wraps a state change so SwiftUI animates
-                // the resulting UI update instead of jumping instantly —
+                // the resulting UI update instead of jumping instantly,
                 // here, the mini player slides back to its resting position.
                 withAnimation(.easeOut(duration: 0.2)) {
                     dragOffset = 0
@@ -379,7 +379,7 @@ struct MiniPlayer: View {
 /// playlists, saved songs, and albums when login is implemented.
 ///
 /// NOTE FOR READERS: the Library tab in the `TabView` above actually uses
-/// `PlaylistsView()`, not this struct — `LibraryView` isn't referenced
+/// `PlaylistsView()`, not this struct, `LibraryView` isn't referenced
 /// anywhere else in the app right now. It's kept here as a simple, working
 /// example of the "coming soon" pattern rather than deleted, but if you're
 /// looking for the real Library tab's code, see `PlaylistsView`.
@@ -388,7 +388,7 @@ struct LibraryView: View {
         // `NavigationView` is the older API for wrapping content in a
         // navigation bar (with a title, back buttons, etc). Newer code in
         // this app (see the TabView above) uses `NavigationStack` instead,
-        // which has more predictable behavior — `NavigationView` still
+        // which has more predictable behavior, `NavigationView` still
         // works but is considered legacy.
         NavigationView {
             VStack(spacing: 20) {

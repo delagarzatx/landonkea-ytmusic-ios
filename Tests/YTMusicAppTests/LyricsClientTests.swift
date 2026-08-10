@@ -1,4 +1,4 @@
-// LyricsClientTests.swift — verifies the lyrics provider fallback chain
+// LyricsClientTests.swift, verifies the lyrics provider fallback chain
 // added alongside lrclib.net: lrclib exact match -> lrclib search ->
 // lyrics.ovh (plain-text-only fallback).
 //
@@ -17,7 +17,7 @@ import XCTest
 final class MockURLProtocol: URLProtocol {
     /// Maps a URL's host to a closure producing (status code, response body).
     /// `static` because URLProtocol subclasses are instantiated internally
-    /// by URLSession, not by test code — this is the only way to hand
+    /// by URLSession, not by test code, this is the only way to hand
     /// per-test behavior in.
     static var responseHandlers: [String: (URL) -> (Int, Data)] = [:]
 
@@ -61,7 +61,7 @@ final class LyricsClientTests: XCTestCase {
     }
 
     /// When lrclib's exact-match endpoint has the song, its (synced)
-    /// result is used directly — lyrics.ovh should never be queried.
+    /// result is used directly, lyrics.ovh should never be queried.
     func testPrimaryProviderSuccessSkipsFallback() async {
         var ovhWasCalled = false
 

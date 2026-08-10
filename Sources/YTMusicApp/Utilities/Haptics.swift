@@ -16,7 +16,7 @@ import UIKit
 ///
 /// USAGE:
 /// Just call `Haptics.tap()` anywhere you want a vibration.
-/// It's safe to call from any thread — the generator handles threading internally.
+/// It's safe to call from any thread, the generator handles threading internally.
 struct Haptics {
     
     /// Trigger a light tap haptic (for most button presses).

@@ -1,4 +1,4 @@
-// Import Apple's SwiftUI framework — the toolkit that provides View, Text,
+// Import Apple's SwiftUI framework, the toolkit that provides View, Text,
 // Button, VStack, and all the other UI building blocks used below.
 import SwiftUI
 
@@ -17,7 +17,7 @@ import SwiftUI
 /// NOTE ON STRUCTURE: SwiftUI views describe *what* the screen should look
 /// like for the current data ("declarative UI"), and SwiftUI takes care of
 /// drawing (and redrawing) it whenever that data changes. A `View` here is a
-/// `struct` (a lightweight value type — copied rather than shared by
+/// `struct` (a lightweight value type, copied rather than shared by
 /// reference) that conforms to the `View` protocol, meaning it promises a
 /// `body` computed property describing its contents. This file is the
 /// largest view in the app, so to keep it readable it's broken into several
@@ -28,7 +28,7 @@ import SwiftUI
 struct SearchView: View {
 
     /// The API client handles all YouTube Music API calls.
-    /// Injected via `@EnvironmentObject` — a property wrapper that reads a
+    /// Injected via `@EnvironmentObject`, a property wrapper that reads a
     /// shared object out of the SwiftUI "environment" (a bag of shared data
     /// available to a view and all of its children) instead of it being
     /// passed in explicitly. That's how child views like `SearchResultsList`
@@ -39,11 +39,11 @@ struct SearchView: View {
     /// The audio player handles playback. Injected via environment.
     @EnvironmentObject var audioPlayer: AudioPlayer
 
-    /// The search history manager — saves and loads recent searches.
+    /// The search history manager, saves and loads recent searches.
     @EnvironmentObject var searchHistory: SearchHistoryManager
 
     /// The current text in the search field. `@State` means this view "owns"
-    /// this value — SwiftUI stores it outside the struct itself (since
+    /// this value, SwiftUI stores it outside the struct itself (since
     /// structs are normally copied, not mutated in place) and automatically
     /// re-renders `body` whenever it changes.
     @State private var searchText = ""
@@ -63,7 +63,7 @@ struct SearchView: View {
     @State private var selectedFilter: String? = nil
 
     /// Available filter options with their display names.
-    /// This is a `let` (constant) array of named tuples — each element bundles
+    /// This is a `let` (constant) array of named tuples, each element bundles
     /// a human-readable `name` with the `key` string the API expects (or `nil`
     /// for "no filter"). Tuples are a lightweight way to group a couple of
     /// related values without declaring a whole new type.
@@ -77,7 +77,7 @@ struct SearchView: View {
     var body: some View {
         NavigationView {
             // spacing: 0 means the sections below sit flush against each
-            // other — each section adds its own internal padding as needed.
+            // other, each section adds its own internal padding as needed.
             VStack(spacing: 0) {
                 searchBarSection
                 suggestionsSection
@@ -88,7 +88,7 @@ struct SearchView: View {
             .navigationBarTitleDisplayMode(.inline)
             // Show error banner if search failed.
             // `.overlay(alignment:)` draws content on top of this view without
-            // affecting its layout — here, pinned to the top edge.
+            // affecting its layout, here, pinned to the top edge.
             .overlay(alignment: .top) {
                 // `if let` unwraps the optional `errorMessage`: the banner
                 // only appears when there actually is an error string to show.
@@ -127,7 +127,7 @@ struct SearchView: View {
     private var searchBarSection: some View {
         // Pass bindings ($) so the SearchBar can read AND write these values.
         // A "binding" (`Binding<T>`) is a two-way reference to a piece of
-        // state owned somewhere else — writing to it here updates the
+        // state owned somewhere else, writing to it here updates the
         // original `@State` in `SearchView`, and SwiftUI re-renders both
         // sides. When SearchBar changes searchText, SearchView sees the update.
         SearchBar(
@@ -138,7 +138,7 @@ struct SearchView: View {
             },
             onTextChanged: { newValue in
                 // Load suggestions as user types (but not during an active search).
-                // `Task { ... }` kicks off an async unit of work — asynchronous
+                // `Task { ... }` kicks off an async unit of work, asynchronous
                 // code can `await` slow operations like network calls without
                 // freezing the rest of the app while it waits.
                 Task {
@@ -182,7 +182,7 @@ struct SearchView: View {
                         // view. `id: \.name` tells SwiftUI how to tell the
                         // rows apart (here, by each filter's unique display
                         // name) so it can track which one is which across
-                        // re-renders — required because `filters` isn't an
+                        // re-renders, required because `filters` isn't an
                         // array of `Identifiable` elements.
                         ForEach(filters, id: \.name) { filter in
                             FilterPill(
@@ -203,7 +203,7 @@ struct SearchView: View {
         }
     }
 
-    /// The main content area below the search bar/filters — whichever of the
+    /// The main content area below the search bar/filters, whichever of the
     /// four search states currently applies.
     private var resultsSection: some View {
         Group {
@@ -220,18 +220,18 @@ struct SearchView: View {
     @ViewBuilder
     private var activeSearchContent: some View {
         // `@ViewBuilder` lets this computed property contain an `if/else if/else`
-        // chain that returns a *different* view type from each branch — normally
+        // chain that returns a *different* view type from each branch, normally
         // Swift requires a single consistent return type, but `@ViewBuilder`
         // (the same mechanism `body` itself uses under the hood) relaxes that
         // for SwiftUI view code.
         if apiClient.isLoading {
-            // State 1: Loading — show skeleton search result rows
+            // State 1: Loading, show skeleton search result rows
             loadingSkeletonView
         } else if apiClient.searchResults.isEmpty && !searchText.isEmpty {
-            // State 2: No results — show empty state message
+            // State 2: No results, show empty state message
             noResultsView
         } else {
-            // State 3: Results — show the list
+            // State 3: Results, show the list
             SearchResultsList(results: apiClient.searchResults)
         }
     }
@@ -241,7 +241,7 @@ struct SearchView: View {
     /// jump once real data arrives.
     private var loadingSkeletonView: some View {
         VStack(spacing: 0) {
-            // `0..<6` is a Range — the integers 0 through 5. We don't care
+            // `0..<6` is a Range, the integers 0 through 5. We don't care
             // about the actual number for each iteration (there's no real
             // data yet), so the closure parameter is named `_` to say
             // "ignore this value".
@@ -286,7 +286,7 @@ struct SearchView: View {
     @ViewBuilder
     private var idleContent: some View {
         if searchHistory.searches.isEmpty {
-            // No history yet — show placeholder
+            // No history yet, show placeholder
             EmptySearchView()
         } else {
             // Show recent searches list
@@ -315,7 +315,7 @@ struct SearchView: View {
     /// `.whitespacesAndNewlines` removes spaces, tabs, and newlines.
     private func performSearch() {
         // `guard ... else { return }` checks a condition up front and exits
-        // the function immediately if it's not satisfied — it reads as
+        // the function immediately if it's not satisfied, it reads as
         // "make sure this is true, otherwise stop here" and keeps the rest
         // of the function free of an extra nesting level.
         guard !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
@@ -339,7 +339,7 @@ struct SearchView: View {
     ///
     /// Suggestions are fetched after 2+ characters to avoid too many API calls.
     /// We limit to 8 suggestions to keep the dropdown manageable.
-    /// Failures are silently ignored — suggestions are a nice-to-have, not critical.
+    /// Failures are silently ignored, suggestions are a nice-to-have, not critical.
     private func loadSuggestions(for query: String) async {
         // Don't fetch suggestions for 1-character queries (too broad)
         guard query.count >= 2 else {
@@ -349,7 +349,7 @@ struct SearchView: View {
 
         do {
             // Access the InnerTube client directly through the APIClient.
-            // This is a slight architectural shortcut — normally we'd add
+            // This is a slight architectural shortcut, normally we'd add
             // a `getSuggestions()` method to APIClient, but for suggestions
             // it's simpler to call the client directly since there's no
             // loading state or error handling needed.
@@ -358,7 +358,7 @@ struct SearchView: View {
             // the SubSequence back to a regular Array (needed for @State)
             suggestions = Array(newSuggestions.prefix(8))
         } catch {
-            // Silently fail — suggestions are optional, not critical
+            // Silently fail, suggestions are optional, not critical
             print("Failed to load suggestions: \(error)")
         }
     }
@@ -374,7 +374,7 @@ struct FilterPill: View {
     /// The display text for this filter (e.g. "Songs")
     let name: String
 
-    /// Whether this is the currently active filter — changes the pill's
+    /// Whether this is the currently active filter, changes the pill's
     /// fill color and text weight.
     let isSelected: Bool
 
@@ -414,7 +414,7 @@ struct SearchBar: View {
     @Binding var isSearching: Bool
 
     /// Called when the user taps the Search button on the keyboard.
-    /// This property's type, `() -> Void`, is a "closure" — a chunk of code
+    /// This property's type, `() -> Void`, is a "closure", a chunk of code
     /// that can be passed around and called later, like a function stored in
     /// a variable. It takes no arguments and returns nothing (`Void`).
     var onSearchButtonClicked: () -> Void
@@ -423,7 +423,7 @@ struct SearchBar: View {
     /// This closure takes a `String` argument (the new text) and returns nothing.
     var onTextChanged: (String) -> Void
 
-    /// The voice search manager — handles speech-to-text conversion.
+    /// The voice search manager, handles speech-to-text conversion.
     @EnvironmentObject var voiceSearch: VoiceSearchManager
 
     /// @FocusState tracks which text field has keyboard focus.
@@ -474,7 +474,7 @@ struct SearchBar: View {
 
             voiceSearchButton
 
-            // Clear button (X icon) — only shows when there's text
+            // Clear button (X icon), only shows when there's text
             if !text.isEmpty {
                 Button(action: {
                     text = ""
@@ -490,14 +490,14 @@ struct SearchBar: View {
         .cornerRadius(10) // Rounded corners
     }
 
-    /// Microphone button for voice search — only shows if speech recognition
+    /// Microphone button for voice search, only shows if speech recognition
     /// is available on this device (some devices/locales don't support it).
     @ViewBuilder
     private var voiceSearchButton: some View {
         if voiceSearch.isAvailable {
             Button(action: {
                 if voiceSearch.isListening {
-                    // Stop listening — use the recognized text as the search query
+                    // Stop listening, use the recognized text as the search query
                     voiceSearch.stopListening()
                     if !voiceSearch.recognizedText.isEmpty {
                         text = voiceSearch.recognizedText
@@ -505,7 +505,7 @@ struct SearchBar: View {
                     }
                     voiceSearch.reset()
                 } else {
-                    // Start listening — clear any previous result
+                    // Start listening, clear any previous result
                     voiceSearch.reset()
                     voiceSearch.startListening()
                 }
@@ -545,7 +545,7 @@ struct SuggestionsList: View {
     /// The suggestion strings from YouTube's API
     let suggestions: [String]
 
-    /// Called when the user taps a suggestion — passes the selected text
+    /// Called when the user taps a suggestion, passes the selected text
     let onSelect: (String) -> Void
 
     var body: some View {
@@ -647,7 +647,7 @@ struct SearchResultsList: View {
                 }
             }
         }
-        // Playlist picker sheet — shows when user taps "Add to Playlist"
+        // Playlist picker sheet, shows when user taps "Add to Playlist"
         .sheet(isPresented: $showPlaylistPicker) {
             // `songToAddToPlaylist` is an optional (`SearchResult?`) because
             // there's no song selected until the user taps "Add to Playlist".
@@ -659,7 +659,7 @@ struct SearchResultsList: View {
                 )
             }
         }
-        // Song details sheet — shows play count, last played, actions
+        // Song details sheet, shows play count, last played, actions
         .sheet(isPresented: $showSongDetails) {
             if let song = songForDetails {
                 SongDetailView(
@@ -715,7 +715,7 @@ struct SearchResultsList: View {
             Label("Add to Queue", systemImage: "plus")
         }
 
-        // Download option — only shows if not already downloaded
+        // Download option, only shows if not already downloaded
         if !offlineManager.isDownloaded(result.id) {
             Button(action: {
                 downloadResult(result)
@@ -727,7 +727,7 @@ struct SearchResultsList: View {
             Label("Downloaded", systemImage: "checkmark.circle.fill")
         }
 
-        // Add to Playlist option — shows playlist picker
+        // Add to Playlist option, shows playlist picker
         if !playlistManager.playlists.isEmpty {
             Button(action: {
                 songToAddToPlaylist = result
@@ -737,7 +737,7 @@ struct SearchResultsList: View {
             }
         }
 
-        // Song Info — shows detailed info about this song
+        // Song Info, shows detailed info about this song
         Button(action: {
             songForDetails = NowPlaying(
                 id: result.id,
@@ -766,7 +766,7 @@ struct SearchResultsList: View {
                 // Get the streaming URL and metadata for this video
                 let playerInfo = try await apiClient.getPlayerInfo(videoId: result.id)
 
-                // Play the song — this clears the queue and starts playing
+                // Play the song, this clears the queue and starts playing
                 await audioPlayer.play(
                     videoId: playerInfo.videoId,
                     title: playerInfo.title,
@@ -908,7 +908,7 @@ struct SearchResultRow: View {
 
             // Artist name with duration, separated by a bullet (•)
             // The bullet is a Text view between the two strings.
-            // We check `if let duration` because duration is optional —
+            // We check `if let duration` because duration is optional,
             // some results (like artists) don't have a duration.
             HStack(spacing: 4) {
                 Text(result.artist)
@@ -927,7 +927,7 @@ struct SearchResultRow: View {
         }
     }
 
-    /// "More" button (currently a placeholder — tapping does nothing.
+    /// "More" button (currently a placeholder, tapping does nothing.
     /// The context menu is applied to the entire row in SearchResultsList.)
     private var moreButton: some View {
         Button(action: {}) {
@@ -972,7 +972,7 @@ struct SearchHistoryList: View {
     /// The list of recent search queries (most recent first)
     let searches: [String]
 
-    /// Called when the user taps a search query — fills the bar and searches
+    /// Called when the user taps a search query, fills the bar and searches
     let onSelect: (String) -> Void
 
     /// Called when the user deletes a single search query
@@ -1058,7 +1058,7 @@ struct SearchHistoryRow: View {
                     // `.buttonStyle(.plain)` stops this inner button from
                     // inheriting the outer row Button's tap styling/behavior,
                     // and (importantly) keeps its tap from also triggering
-                    // the outer button's action — without it, tapping delete
+                    // the outer button's action, without it, tapping delete
                     // could also fire onSelect.
                     .buttonStyle(.plain)
                 }
@@ -1100,7 +1100,7 @@ struct PlaylistPickerSheet: View {
 
     /// Whether to show the "New Playlist" naming alert.
     /// Mirrors the exact pattern used by PlaylistsView's "New Playlist"
-    /// alert — see that file for the fuller explanation of each piece.
+    /// alert, see that file for the fuller explanation of each piece.
     @State private var showNewPlaylistAlert = false
 
     /// The name being typed for the new playlist in the alert's TextField.
@@ -1151,7 +1151,7 @@ struct PlaylistPickerSheet: View {
                     let trimmed = newPlaylistName.trimmingCharacters(in: .whitespaces)
                     guard !trimmed.isEmpty else { return }
                     // Create the playlist AND immediately add the song the
-                    // user was trying to save — that's the whole point of
+                    // user was trying to save, that's the whole point of
                     // reaching this alert from the "Add to Playlist" sheet,
                     // not just an empty playlist.
                     let playlist = playlistManager.createPlaylist(name: trimmed)
@@ -1228,7 +1228,7 @@ struct PlaylistPickerSheet: View {
                 playlistManager.addSong(song, to: playlist)
 
                 // `MainActor.run` hops back onto the main thread (the one
-                // responsible for updating the UI) before touching @State —
+                // responsible for updating the UI) before touching @State,
                 // SwiftUI state must only be mutated from the main thread,
                 // and code inside `Task { }` isn't guaranteed to already be
                 // there once an `await` has suspended and resumed it.

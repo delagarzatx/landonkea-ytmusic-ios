@@ -10,14 +10,14 @@ import SwiftUI // Imports the SwiftUI framework for building the user interface 
 /// NOTE ON STYLE: The `body` property below is kept intentionally small. Instead of
 /// writing one giant block of nested views, each section of the screen is broken out
 /// into its own small "computed property" (a property whose value is calculated by
-/// running code, rather than stored directly — declared with `var name: Type { ... }`).
+/// running code, rather than stored directly, declared with `var name: Type { ... }`).
 /// This mirrors how you'd break a long function into smaller helper functions: it makes
 /// each piece easier to read, name, and reason about on its own.
 struct SleepTimerView: View { // Declares a SwiftUI View struct. "View" is a protocol (a contract listing capabilities a type must provide); conforming to it means this struct can describe part of the on-screen UI.
 
     /// The audio player instance from the environment, which provides sleep timer controls.
     ///
-    /// `@EnvironmentObject` is a "property wrapper" — special syntax (the `@` prefix) that
+    /// `@EnvironmentObject` is a "property wrapper", special syntax (the `@` prefix) that
     /// attaches extra behavior to a property. This one says: "don't create this value here;
     /// instead, fetch it from the shared environment that an ancestor view injected with
     /// `.environmentObject(...)`." Because `AudioPlayer` is a class that publishes changes
@@ -34,11 +34,11 @@ struct SleepTimerView: View { // Declares a SwiftUI View struct. "View" is a pro
 
     /// The array of preset minute values displayed as options in the list.
     /// This is a plain constant (`let`), not `@State`, because its contents never change
-    /// after the view is created — it's just a fixed menu of choices.
+    /// after the view is created, it's just a fixed menu of choices.
     let presets = [15, 30, 45, 60]
 
     /// Whether the "Custom Duration" naming alert is showing.
-    /// Added so users aren't limited to the four fixed presets above —
+    /// Added so users aren't limited to the four fixed presets above,
     /// e.g. "37 minutes" for an odd-length nap wasn't representable before.
     @State private var showCustomDurationAlert = false
 
@@ -47,7 +47,7 @@ struct SleepTimerView: View { // Declares a SwiftUI View struct. "View" is a pro
 
     /// The required computed property that defines the layout and content of this view.
     /// Every type that conforms to `View` must provide a `body`. SwiftUI calls this
-    /// property (potentially many times) to figure out what to draw on screen — this is
+    /// property (potentially many times) to figure out what to draw on screen, this is
     /// what people mean by "declarative UI": you describe *what* the screen should look
     /// like for the current state, and SwiftUI figures out *how* to update the real
     /// pixels to match.
@@ -68,14 +68,14 @@ struct SleepTimerView: View { // Declares a SwiftUI View struct. "View" is a pro
                     }
                 }
             }
-            // Custom-duration alert — lets the user type any number of
+            // Custom-duration alert, lets the user type any number of
             // minutes instead of being limited to the four fixed presets.
             .alert("Custom Duration", isPresented: $showCustomDurationAlert) {
                 TextField("Minutes", text: $customMinutesText)
                     .keyboardType(.numberPad)
                 Button("Start") {
                     // `Int(...)` returns nil for empty/non-numeric text, and
-                    // the `guard` also rejects 0 or negative values — both
+                    // the `guard` also rejects 0 or negative values, both
                     // cases just leave the alert's text as-is instead of
                     // starting a nonsensical timer.
                     guard let minutes = Int(customMinutesText), minutes > 0 else { return }
@@ -96,7 +96,7 @@ struct SleepTimerView: View { // Declares a SwiftUI View struct. "View" is a pro
     // "MARK:" comments create a jump-to bookmark in Xcode's minimap/navigator; they're
     // purely organizational and have no effect on how the code runs.
 
-    /// Active timer section — shown only when a sleep timer is already running.
+    /// Active timer section, shown only when a sleep timer is already running.
     ///
     /// This is a `some View` computed property, just like `body`. Extracting it out of
     /// `body` means `body` itself stays short and reads almost like a table of contents.
@@ -127,7 +127,7 @@ struct SleepTimerView: View { // Declares a SwiftUI View struct. "View" is a pro
 
                     Spacer() // A flexible, invisible view that expands to fill remaining space, pushing the cancel button to the right edge of the row
 
-                    // Cancel button — stops the active timer and dismisses the modal
+                    // Cancel button, stops the active timer and dismisses the modal
                     Button(action: { // `Button` takes an `action` closure (code to run on tap) and a label (what it looks like)
                         audioPlayer.stopSleepTimer() // Calls the player's method to cancel the active sleep timer
                         dismiss() // Calls the environment dismiss function to close this modal view
@@ -140,10 +140,10 @@ struct SleepTimerView: View { // Declares a SwiftUI View struct. "View" is a pro
         }
     }
 
-    /// Preset options section — displays the available timer durations.
+    /// Preset options section, displays the available timer durations.
     private var presetOptionsSection: some View {
         Section { // A grouped list section for the preset timer options
-            // `ForEach` is SwiftUI's way of turning a collection into a list of views —
+            // `ForEach` is SwiftUI's way of turning a collection into a list of views,
             // similar to a `for` loop, but declarative: you tell it *what* view each
             // element should produce, and SwiftUI handles inserting/removing/animating rows
             // as the collection changes. `id: \.self` tells ForEach to use each Int value
@@ -153,7 +153,7 @@ struct SleepTimerView: View { // Declares a SwiftUI View struct. "View" is a pro
                 presetRow(minutes: minutes)
             }
 
-            // Custom duration — opens the alert defined on `body` above.
+            // Custom duration, opens the alert defined on `body` above.
             Button(action: {
                 showCustomDurationAlert = true
             }) {
@@ -196,7 +196,7 @@ struct SleepTimerView: View { // Declares a SwiftUI View struct. "View" is a pro
         }
     }
 
-    /// End of current track section — sets the timer to match the remaining duration
+    /// End of current track section, sets the timer to match the remaining duration
     /// of the current song.
     private var endOfTrackSection: some View {
         Section { // A grouped list section for the "end of track" option
@@ -207,7 +207,7 @@ struct SleepTimerView: View { // Declares a SwiftUI View struct. "View" is a pro
                 // `if let song = ...` is "optional binding": `audioPlayer.currentSong` is an
                 // Optional (a value that might be present or might be `nil`, meaning "no
                 // value"). This safely unwraps it into a non-optional local constant `song`
-                // only if it actually has a value — the code inside the braces never runs
+                // only if it actually has a value, the code inside the braces never runs
                 // when there's no current song, which avoids crashing on a missing value.
                 if let song = audioPlayer.currentSong {
                     let remaining = audioPlayer.duration - audioPlayer.currentTime // Calculates how many seconds are left in the current track
@@ -215,8 +215,8 @@ struct SleepTimerView: View { // Declares a SwiftUI View struct. "View" is a pro
                         audioPlayer.startSleepTimer(duration: remaining) // Activates the sleep timer with the exact remaining duration
                     }
                 }
-                // `song` isn't used beyond the `if let` check above — we only needed to know
-                // *whether* a song exists to compute remaining time, not its details — so
+                // `song` isn't used beyond the `if let` check above, we only needed to know
+                // *whether* a song exists to compute remaining time, not its details, so
                 // this doesn't create any dead state; it's simply how optional binding reads.
                 dismiss() // Closes the modal after the timer is set
             }) {
@@ -225,12 +225,12 @@ struct SleepTimerView: View { // Declares a SwiftUI View struct. "View" is a pro
         }
     }
 
-    /// "Stop after this album/playlist finishes" section — a smart sleep
+    /// "Stop after this album/playlist finishes" section, a smart sleep
     /// timer that isn't tied to a fixed duration. Instead it watches the
     /// current queue and stops playback once the last song in it ends,
     /// however long that actually takes.
     ///
-    /// Only shown when there's something queued after the current song —
+    /// Only shown when there's something queued after the current song,
     /// with nothing left to play through, this option is indistinguishable
     /// from "End of current track" above, so hiding it avoids a
     /// meaningless duplicate row.
@@ -247,7 +247,7 @@ struct SleepTimerView: View { // Declares a SwiftUI View struct. "View" is a pro
                             Text("Stop after this album/playlist finishes")
                                 .foregroundColor(.primary)
 
-                            // "+3 more" — the current song plus everything
+                            // "+3 more", the current song plus everything
                             // still queued after it.
                             Text("\(audioPlayer.upNext.count + 1) songs remaining")
                                 .font(.caption)

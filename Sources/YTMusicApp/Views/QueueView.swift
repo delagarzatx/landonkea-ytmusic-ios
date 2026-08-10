@@ -15,7 +15,7 @@ import SwiftUI // SwiftUI provides the declarative UI building blocks (View, Lis
 /// NOTE ON STYLE: `body` only lays out the top-level `List` structure and delegates each
 /// section (now playing, up next, empty state) and each row to its own small computed
 /// property or helper method below. This mirrors breaking a long function into smaller,
-/// well-named helper functions — each piece can be read on its own.
+/// well-named helper functions, each piece can be read on its own.
 struct QueueView: View {
 
     /// Grab the audio player from the environment so we can read/modify the queue.
@@ -23,7 +23,7 @@ struct QueueView: View {
     /// whenever the audio player's published properties change.
     @EnvironmentObject var audioPlayer: AudioPlayer
 
-    /// The playlist manager — used by "Save Queue as Playlist" below.
+    /// The playlist manager, used by "Save Queue as Playlist" below.
     @EnvironmentObject var playlistManager: PlaylistManager
 
     /// `dismiss` is a SwiftUI environment value that lets us close this screen.
@@ -56,12 +56,12 @@ struct QueueView: View {
                     }
                 }
 
-                // "Clear" and "Save as Playlist" on the right — only shown
+                // "Clear" and "Save as Playlist" on the right, only shown
                 // when there's actually a queue worth acting on.
                 ToolbarItem(placement: .navigationBarTrailing) {
                     if !audioPlayer.queue.isEmpty {
                         HStack {
-                            // "Save Queue as Playlist" — lets the user turn
+                            // "Save Queue as Playlist", lets the user turn
                             // whatever they've queued up into a reusable
                             // playlist without retyping every song.
                             Button {
@@ -86,7 +86,7 @@ struct QueueView: View {
                     let trimmed = newPlaylistName.trimmingCharacters(in: .whitespaces)
                     guard !trimmed.isEmpty else { return }
                     // Saves the FULL queue (current song + up next), in
-                    // order, as a new playlist — see PlaylistManager's
+                    // order, as a new playlist, see PlaylistManager's
                     // createPlaylist(name:songs:) for why this is a single
                     // batched call rather than one addSong per song.
                     playlistManager.createPlaylist(name: trimmed, songs: audioPlayer.queue)
@@ -104,7 +104,7 @@ struct QueueView: View {
     // MARK: - Sections
     // "MARK:" comments are bookmarks for Xcode's navigator/minimap and don't affect behavior.
 
-    /// SECTION 0: HISTORY — songs already played earlier in this queue.
+    /// SECTION 0: HISTORY, songs already played earlier in this queue.
     /// Tapping one jumps straight back to it (via `AudioPlayer.playFromHistory`)
     /// without disturbing the rest of the queue; everything after it just
     /// becomes "up next" again, same as stepping back one at a time would.
@@ -117,7 +117,7 @@ struct QueueView: View {
             Section {
                 // `audioPlayer.history` is already reversed (most recently
                 // played first). Its element at local index `i` sits at full
-                // queue index `currentIndex - 1 - i` — see the index math
+                // queue index `currentIndex - 1 - i`, see the index math
                 // note on `upNextOrEmptySection` for the general pattern;
                 // this is the mirror-image version since history counts
                 // backward from currentIndex instead of forward.
@@ -165,7 +165,7 @@ struct QueueView: View {
     /// produce the exact same concrete view type.
     @ViewBuilder
     private var nowPlayingSection: some View {
-        // `if let` safely unwraps the optional. `currentSong` is an Optional — it might
+        // `if let` safely unwraps the optional. `currentSong` is an Optional, it might
         // hold a song, or might be `nil` ("no value"). If nothing is playing, currentSong
         // is nil and this entire section is skipped, which avoids ever trying to read
         // `.title`/`.artist` off of "nothing."
@@ -256,7 +256,7 @@ struct QueueView: View {
                     // currentIndex + 1" offset from the explanation above. The destination
                     // conversion was already here; the source conversion was missing, which
                     // meant dragging a row could move the wrong song in the full queue
-                    // (e.g. one still playing earlier in the list) — fixed by mapping every
+                    // (e.g. one still playing earlier in the list), fixed by mapping every
                     // index in `source` through the same offset before calling moveQueue.
                     let adjustedSource = IndexSet(source.map { audioPlayer.currentIndex + $0 + 1 })
                     let adjustedDestination = audioPlayer.currentIndex + destination + 1
@@ -278,14 +278,14 @@ struct QueueView: View {
     ///   - song: The song to display in this row.
     private func upNextRow(index: Int, song: NowPlaying) -> some View {
         HStack(spacing: 12) {
-            // Drag handle icon — indicates this row can be dragged to reorder.
+            // Drag handle icon, indicates this row can be dragged to reorder.
             // The three horizontal lines (hamburger icon) is the standard
             // iOS drag handle pattern used in Reminders, Notes, etc.
             Image(systemName: "line.3.horizontal")
                 .font(.caption)
                 .foregroundColor(.secondary)
 
-            // Position number (1, 2, 3...) — display as index+1 so it starts at 1
+            // Position number (1, 2, 3...), display as index+1 so it starts at 1
             Text("\(index + 1)")
                 .font(.subheadline)
                 .foregroundColor(.secondary)
@@ -379,7 +379,7 @@ struct QueueView: View {
     /// index into the full queue's index before calling into the player.
     /// - Parameter localIndex: The song's position within the `upNext` slice (0-based).
     private func removeUpNextItem(atLocalIndex localIndex: Int) {
-        // Convert "up next index" to "full queue index" — see the index math
+        // Convert "up next index" to "full queue index", see the index math
         // explanation above `upNextOrEmptySection`.
         let globalIndex = audioPlayer.currentIndex + localIndex + 1
         audioPlayer.removeFromQueue(at: globalIndex)

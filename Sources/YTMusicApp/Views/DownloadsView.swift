@@ -51,7 +51,7 @@ struct DownloadsView: View {
     // and alert. Each of those pieces is defined as its own computed
     // property below so this top-level view stays easy to scan.
     var body: some View {
-        // ^ The main view content — SwiftUI renders this on screen
+        // ^ The main view content, SwiftUI renders this on screen
         NavigationView {
             // ^ Wraps everything in a navigation controller (top bar + titles)
             Group {
@@ -69,7 +69,7 @@ struct DownloadsView: View {
             .alert("Clear All Downloads?", isPresented: $showClearAllAlert) {
                 // ^ A modal dialog; appears when showClearAllAlert becomes true
                 Button("Cancel", role: .cancel) { }
-                // ^ Dismisses the alert — role: .cancel means it's the safe default
+                // ^ Dismisses the alert, role: .cancel means it's the safe default
                 Button("Clear All", role: .destructive) {
                     // ^ Red-styled destructive button
                     offlineManager.deleteAll()
@@ -85,7 +85,7 @@ struct DownloadsView: View {
 
     // MARK: - Empty State
 
-    /// Shown when the user has no downloads yet — explains what downloads are
+    /// Shown when the user has no downloads yet, explains what downloads are
     /// and how to create one.
     private var emptyState: some View {
         VStack(spacing: 16) {
@@ -111,7 +111,7 @@ struct DownloadsView: View {
                 .multilineTextAlignment(.center)
                 // ^ Centre-align because the text wraps to multiple lines
 
-            // Call to action — tells user how to download
+            // Call to action, tells user how to download
             Text("Tap the download icon on any song")
                 // ^ A hint pointing to the download button on player rows
                 .font(.caption)
@@ -123,7 +123,7 @@ struct DownloadsView: View {
 
     // MARK: - Downloads List
 
-    /// Shown when there's at least one download — a storage summary section
+    /// Shown when there's at least one download, a storage summary section
     /// followed by the list of downloaded songs.
     private var downloadsList: some View {
         List {
@@ -166,7 +166,7 @@ struct DownloadsView: View {
         Section {
             // ^ A second section containing the actual song rows
             ForEach(offlineManager.downloads) { song in
-                // ^ Loop over every downloaded song (uses Identifiable conformance —
+                // ^ Loop over every downloaded song (uses Identifiable conformance,
                 // a protocol requirement that gives each `DownloadedSong` a
                 // stable `id` SwiftUI can use to track which row is which)
                 DownloadRow(song: song)
@@ -178,12 +178,12 @@ struct DownloadsView: View {
                     }
             }
             .onDelete(perform: deleteSongs)
-            // ^ Swipe-to-delete handler for the list rows — implemented
+            // ^ Swipe-to-delete handler for the list rows, implemented
             // below in `deleteSongs(at:)`.
         }
     }
 
-    /// Toolbar contents for the navigation bar — just the "Clear All" button,
+    /// Toolbar contents for the navigation bar, just the "Clear All" button,
     /// only shown when there's something to clear.
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
@@ -215,7 +215,7 @@ struct DownloadsView: View {
     /// removed at once (e.g. deleting rows 0 and 2 together via Edit mode):
     /// after the first deletion, `offlineManager.downloads` shrinks and every
     /// later index shifts down by one, so the second `downloads[index]` reads
-    /// the *wrong* song — or, if it was the last row, indexes past the end of
+    /// the *wrong* song, or, if it was the last row, indexes past the end of
     /// the array and crashes the app with an out-of-range error.
     ///
     /// The fix is to first snapshot which *songs* (not index numbers) the
@@ -257,8 +257,8 @@ struct DownloadsView: View {
         // playLocal is async, so we wrap the call in a Task.
         Task {
             // `Task { ... }` starts a new unit of asynchronous work. `await`
-            // (below) pauses this task — without blocking the rest of the
-            // app — until `playLocal` finishes.
+            // (below) pauses this task, without blocking the rest of the
+            // app, until `playLocal` finishes.
             await audioPlayer.playLocal(
                 // ^ Call the player with a local file instead of streaming
                 videoId: song.videoId,
@@ -270,7 +270,7 @@ struct DownloadsView: View {
                 thumbnailUrl: song.thumbnailUrl,
                 // ^ The album art URL for the now-playing display
                 localURL: localURL,
-                // ^ The local file URL — player reads from disk, not the network
+                // ^ The local file URL, player reads from disk, not the network
                 duration: 0 // Duration unknown for cached songs, AudioPlayer will detect it
                 // ^ Pass 0 so the player auto-detects the track length from the file
             )
@@ -306,7 +306,7 @@ struct DownloadRow: View {
     private var thumbnail: some View {
         // AsyncImage loads an image from a URL in the background (off the
         // main thread) so it never freezes the UI while the network request
-        // is in flight. `URL(string:)` returns an *optional* URL — if
+        // is in flight. `URL(string:)` returns an *optional* URL, if
         // `song.thumbnailUrl` were ever malformed, this becomes `nil` and
         // AsyncImage simply falls through to the `placeholder` closure below
         // instead of crashing, which is why no force-unwrap (`!`) is needed here.
@@ -355,14 +355,14 @@ struct DownloadRow: View {
     /// Small green "available offline" badge.
     private var offlineIndicator: some View {
         Image(systemName: "arrow.down.circle.fill")
-            // ^ A filled circle with a down-arrow — shows this song is cached
+            // ^ A filled circle with a down-arrow, shows this song is cached
             .foregroundColor(.green)
         // ^ Green colour signals "available offline"
     }
 }
 
 #Preview {
-    // ^ Xcode preview canvas — renders this view without building the full app
+    // ^ Xcode preview canvas, renders this view without building the full app
     DownloadsView()
         .environmentObject(OfflineManager())
         // ^ Inject a fresh OfflineManager for preview

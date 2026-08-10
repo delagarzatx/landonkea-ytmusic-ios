@@ -1,4 +1,4 @@
-// NowPlayingWidget.swift — The widget configuration: which sizes it
+// NowPlayingWidget.swift, The widget configuration: which sizes it
 // supports and what to call it in the widget gallery.
 
 import WidgetKit
@@ -6,7 +6,7 @@ import SwiftUI
 
 struct NowPlayingWidget: Widget {
     // Must exactly match the `ofKind:` string AudioPlayer passes to
-    // `WidgetCenter.shared.reloadTimelines(ofKind:)` — see
+    // `WidgetCenter.shared.reloadTimelines(ofKind:)`, see
     // NowPlayingSnapshotStore.widgetKind in Sources/YTMusicShared.
     let kind: String = NowPlayingSnapshotStore.widgetKind
 
@@ -30,7 +30,7 @@ struct NowPlayingWidget: Widget {
 /// Home Screen widgets (`.systemSmall`/`.systemMedium`) get a card with
 /// artwork; Lock Screen widgets (`.accessoryRectangular`/`.accessoryCircular`)
 /// are text/glyph-only per Apple's Lock Screen widget design guidance (no
-/// full-color artwork there — the system tints everything monochrome).
+/// full-color artwork there, the system tints everything monochrome).
 struct NowPlayingWidgetEntryView: View {
     @Environment(\.widgetFamily) private var family
     let entry: NowPlayingEntry

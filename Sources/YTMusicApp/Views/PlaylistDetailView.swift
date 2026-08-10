@@ -1,4 +1,4 @@
-// Imports the SwiftUI framework — this gives us access to all
+// Imports the SwiftUI framework, this gives us access to all
 // Apple's UI building blocks: Views, Lists, Buttons, Images, etc.
 import SwiftUI
 
@@ -15,7 +15,7 @@ struct PlaylistDetailView: View {
     //   what this screen looks like and how it behaves.
 
     /// The playlist to display
-    // This is a constant property — it gets set when this view is created
+    // This is a constant property, it gets set when this view is created
     // and never changes. It holds all the data for the playlist being shown.
     let playlist: Playlist
 
@@ -37,7 +37,7 @@ struct PlaylistDetailView: View {
 
     /// Whether to show the rename alert
     // @State tells SwiftUI to watch this value and re-render the view
-    // whenever it changes. Starts as false — the alert is hidden.
+    // whenever it changes. Starts as false, the alert is hidden.
     @State private var showRenameAlert = false
 
     /// The new name for renaming
@@ -54,7 +54,7 @@ struct PlaylistDetailView: View {
     // NOTE ON STRUCTURE: this body used to be one very long expression with
     // every section inlined. It's now split into small computed properties
     // (playlistHeaderSection, emptyStateSection, songsSection, toolbarMenu)
-    // below. A "computed property" is a property that isn't stored — instead
+    // below. A "computed property" is a property that isn't stored, instead
     // its value is calculated by running a small chunk of code every time you
     // read it. Splitting a view this way makes each piece easier to read,
     // easier for the Swift compiler to type-check, and easier to reuse.
@@ -68,7 +68,7 @@ struct PlaylistDetailView: View {
             // ── SONGS LIST ──────────────────────────────────────
             // If there are no songs, show a friendly empty-state message,
             // otherwise show the real list of songs. This is a ternary-like
-            // branch using a plain `if/else` — SwiftUI is fine with either
+            // branch using a plain `if/else`, SwiftUI is fine with either
             // branch appearing since both produce "some View".
             if playlist.songs.isEmpty {
                 emptyStateSection
@@ -104,7 +104,7 @@ struct PlaylistDetailView: View {
     }
 
     // MARK: - Body sub-sections
-    // Each computed property below returns "some View" — a shorthand type
+    // Each computed property below returns "some View", a shorthand type
     // that means "some concrete SwiftUI view type, but I won't tell you
     // exactly which one." That's what lets SwiftUI's declarative style
     // (describing WHAT the UI should look like, rather than writing
@@ -120,7 +120,7 @@ struct PlaylistDetailView: View {
             // VStack arranges children vertically with 12 pts spacing.
             VStack(spacing: 12) {
                 // Playlist icon
-                // SF Symbol for a stack of squares — a generic playlist icon.
+                // SF Symbol for a stack of squares, a generic playlist icon.
                 Image(systemName: "square.stack.fill")
                     // Sets the icon size to 50 pts (large title size).
                     .font(.system(size: 50))
@@ -193,7 +193,7 @@ struct PlaylistDetailView: View {
     ///
     /// BUG FIX: `isDownloadingAll` used to be set to `true`/`false` by
     /// downloadAll() but nothing in the UI ever read it, so the button
-    /// never visibly reacted while a bulk download was running — a classic
+    /// never visibly reacted while a bulk download was running, a classic
     /// "dead state" bug (a variable that's written but never observed).
     /// Now the button shows a spinner and disables itself while the
     /// download is in progress, so isDownloadingAll actually does something.
@@ -277,11 +277,11 @@ struct PlaylistDetailView: View {
             // Loops over each song with its index (0, 1, 2...).
             // .enumerated() gives us (index, song) pairs.
             // ForEach is SwiftUI's way of turning a collection into a list
-            // of views — it re-runs its closure for every element.
+            // of views, it re-runs its closure for every element.
             // id: \.element.id tells SwiftUI each row is unique by song.id,
             // which is how it knows which row moved/was removed on updates.
             ForEach(Array(playlist.songs.enumerated()), id: \.element.id) { index, song in
-                // The entire row is a button — tapping it starts playback.
+                // The entire row is a button, tapping it starts playback.
                 Button(action: {
                     // Play this song and the rest of the playlist
                     // Calls the private method below starting at this index.
@@ -534,7 +534,7 @@ struct PlaylistDetailView: View {
     ///
     /// Formats the playlist as a nice text list that can be shared
     /// via Messages, Notes, AirDrop, etc.
-    // This is a computed property — it generates the text on the fly.
+    // This is a computed property, it generates the text on the fly.
     private var playlistShareText: String {
         // Start with the playlist name followed by a newline.
         var text = "\(playlist.name)\n"
@@ -543,7 +543,7 @@ struct PlaylistDetailView: View {
 
         // Loop through every song with its position number (1-based).
         for (index, song) in playlist.songs.enumerated() {
-            // Append e.g. "1. Song Title — Artist Name\n".
+            // Append e.g. "1. Song Title, Artist Name\n".
             text += "\(index + 1). \(song.title) \u{2014} \(song.artist)\n"
         }
 
@@ -567,7 +567,7 @@ struct PlaylistDetailView: View {
         PlaylistDetailView(playlist: Playlist(
             id: "1",               // Dummy ID for preview.
             name: "My Playlist",   // Dummy name visible in the preview.
-            songs: [],             // Empty songs array — shows empty state.
+            songs: [],             // Empty songs array, shows empty state.
             createdAt: Date()      // Sets creation date to right now.
         ))
         // Injects a fake PlaylistManager for the @EnvironmentObject.

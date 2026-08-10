@@ -1,25 +1,25 @@
-// CloudKitSyncTests.swift — Unit tests for CloudKit playlist/liked-song
+// CloudKitSyncTests.swift, Unit tests for CloudKit playlist/liked-song
 // sync (Sources/YTMusicApp/Services/CloudKitSyncManager.swift).
 //
 // WHAT'S TESTED HERE vs. NOT:
 // This environment has no signed-in iCloud account and no Apple Developer
 // team, so nothing that actually talks to `CKContainer.default()` /
-// `CKContainer(identifier:)` over the network can be exercised — that's
+// `CKContainer(identifier:)` over the network can be exercised, that's
 // the same documented constraint as this repo's App Group (see
 // YTMusicApp.entitlements and the README's Mac Catalyst section).
 //
 // What CAN be verified without real network/iCloud access, and IS
 // verified below:
-//   1. Record encoding/decoding — CKRecord itself can be constructed
+//   1. Record encoding/decoding, CKRecord itself can be constructed
 //      locally with no entitlements or network (only *saving* one to a
 //      real database needs that), so `CloudKitRecordCoding`'s Playlist
 //      <-> CKRecord and LikedSongEntry <-> CKRecord round-trips are
 //      exercised directly.
-//   2. Conflict resolution — `PlaylistConflictResolver` and
+//   2. Conflict resolution, `PlaylistConflictResolver` and
 //      `LikedSongConflictResolver` are pure functions over plain structs,
 //      no CloudKit types involved at all.
 //   3. CloudKitSyncManager's orchestration (pull, merge, apply-locally,
-//      push) — exercised end-to-end against `InMemoryCloudRecordStore`,
+//      push), exercised end-to-end against `InMemoryCloudRecordStore`,
 //      an in-memory fake conforming to the same `CloudRecordStore`
 //      protocol the real `CKDatabaseRecordStore` conforms to. This proves
 //      the sync logic itself is correct; it does NOT prove
@@ -32,7 +32,7 @@ import CloudKit
 // MARK: - In-memory CloudRecordStore fake
 
 /// A `CloudRecordStore` backed by an in-memory dictionary instead of a real
-/// CKDatabase — lets CloudKitSyncManager's full pull/merge/push flow run in
+/// CKDatabase, lets CloudKitSyncManager's full pull/merge/push flow run in
 /// a unit test with no network, no entitlements, and no iCloud account.
 final class InMemoryCloudRecordStore: CloudRecordStore {
     private var recordsByID: [CKRecord.ID: CKRecord] = [:]
@@ -40,7 +40,7 @@ final class InMemoryCloudRecordStore: CloudRecordStore {
     private(set) var zoneCreated = false
 
     /// Seeds the fake "cloud" with a record, as if another device had
-    /// already synced it — used to simulate pulling remote-only or
+    /// already synced it, used to simulate pulling remote-only or
     /// conflicting data.
     func seed(_ record: CKRecord) {
         recordsByID[record.recordID] = record
@@ -122,7 +122,7 @@ final class CloudKitSyncTests: XCTestCase {
     }
 
     func testPlaylistFromRecordReturnsNilWhenMissingRequiredFields() {
-        // A record of the right type but missing songsData — simulates a
+        // A record of the right type but missing songsData, simulates a
         // partially-written or corrupted remote record.
         let record = CKRecord(recordType: CloudKitSchema.playlistRecordType, recordID: CKRecord.ID(recordName: "x", zoneID: testZoneID))
         record[CloudKitSchema.PlaylistField.name] = "Incomplete" as CKRecordValue
@@ -157,7 +157,7 @@ final class CloudKitSyncTests: XCTestCase {
         let mergedRemoteWins = PlaylistConflictResolver.merge(local: [older], remote: [newer])
         XCTAssertEqual(mergedRemoteWins.first?.name, "New Name")
 
-        // Newer is local: local should win (order-independent — the
+        // Newer is local: local should win (order-independent, the
         // resolver doesn't have a "remote always wins" bias).
         let mergedLocalWins = PlaylistConflictResolver.merge(local: [newer], remote: [older])
         XCTAssertEqual(mergedLocalWins.first?.name, "New Name")
@@ -279,7 +279,7 @@ final class CloudKitSyncTests: XCTestCase {
     /// `async` itself (so call sites like NotificationCenter observers and
     /// SwiftUI's `init()` don't need to be async). Tests poll briefly for
     /// the manager's `applyMerged*` callback to have run instead of
-    /// assuming a fixed delay is enough — avoids both flakiness (too short)
+    /// assuming a fixed delay is enough, avoids both flakiness (too short)
     /// and slow tests (too long).
     @MainActor
     private func waitForSyncToSettle(_ manager: CloudKitSyncManager) async {

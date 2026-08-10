@@ -1,4 +1,4 @@
-// EqualizerEngine.swift — Plays local audio files through a real 10-band
+// EqualizerEngine.swift, Plays local audio files through a real 10-band
 // equalizer using AVAudioEngine.
 //
 // WHY THIS EXISTS:
@@ -40,17 +40,17 @@ class EqualizerEngine {
     /// Created lazily the first time we play a file.
     private let engine = AVAudioEngine()
     
-    /// The player node — the "source" that feeds audio into the graph.
+    /// The player node, the "source" that feeds audio into the graph.
     /// It reads the audio file and pushes buffers down the chain.
     private let playerNode = AVAudioPlayerNode()
     
-    /// The time pitch unit — adjusts playback speed (0.5x, 1.0x, 2.0x).
+    /// The time pitch unit, adjusts playback speed (0.5x, 1.0x, 2.0x).
     /// AVPlayer has built-in rate control, but AVAudioPlayerNode does not,
     /// so we use this AVAudioUnit to get the same feature.
     private let timePitch = AVAudioUnitTimePitch()
     
     /// The actual equalizer node with 10 frequency bands.
-    /// This is the node that makes the EQ real — it boosts/cuts frequencies.
+    /// This is the node that makes the EQ real, it boosts/cuts frequencies.
     private let eqNode = AVAudioUnitEQ(numberOfBands: 10)
     
     /// The currently open audio file being played.
@@ -58,7 +58,7 @@ class EqualizerEngine {
     private var audioFile: AVAudioFile?
     
     /// True when the user (or AudioPlayer) has stopped playback on purpose.
-    /// Used to ignore the completion handler when the stop was intentional —
+    /// Used to ignore the completion handler when the stop was intentional,
     /// otherwise stopping a song would look like it "ended naturally".
     private var isStopping = false
     
@@ -66,7 +66,7 @@ class EqualizerEngine {
     private var hasEnded = false
     
     /// A counter that identifies the CURRENT scheduled segment.
-    /// Each time we (re)schedule a segment — including after a seek — we
+    /// Each time we (re)schedule a segment, including after a seek, we
     /// bump this counter. Completion callbacks from OLD segments capture the
     /// counter value from when they were scheduled; if the value no longer
     /// matches, the callback is stale (it was cancelled by a seek) and is
@@ -104,14 +104,14 @@ class EqualizerEngine {
     /// WHY THIS IS REQUIRED: AVAudioEngine.connect(_:to:format:) will THROW
     /// an uncaught Objective-C exception (crashing the app) if either node
     /// passed to it hasn't been attached to the engine first via
-    /// engine.attach(_:) — attaching and connecting are separate steps.
+    /// engine.attach(_:), attaching and connecting are separate steps.
     /// (engine.mainMixerNode is attached automatically by the engine itself,
     /// so it doesn't need this.)
     ///
     /// We attach exactly once here, in init, rather than in buildGraph().
     /// buildGraph() re-runs every time playFile() is called (including
     /// replays on the same engine instance), and re-attaching an
-    /// already-attached node also throws — so attaching must happen exactly
+    /// already-attached node also throws, so attaching must happen exactly
     /// once per node's lifetime, and init is the only place that's true.
     init() {
         engine.attach(playerNode)
@@ -162,12 +162,12 @@ class EqualizerEngine {
         //
         // BUG FIX: this used to run AFTER `self.audioFile = file` was set
         // below. stopInternal() sets `audioFile = nil` as part of tearing
-        // down the previous playback session — so calling it after
+        // down the previous playback session, so calling it after
         // assigning the new file immediately wiped the reference right
         // back out again. scheduleSegment() (called further down) reads
         // `audioFile` and silently does nothing if it's nil, which meant
         // the engine would start "playing" with nothing actually
-        // scheduled — dead silence, with no error. Running stopInternal()
+        // scheduled, dead silence, with no error. Running stopInternal()
         // FIRST (before the new file is assigned) means it only ever
         // clears the OLD file, never the one we're about to play.
         stopInternal()
@@ -202,7 +202,7 @@ class EqualizerEngine {
             return
         }
         
-        // Start the player node — audio now flows through the EQ
+        // Start the player node, audio now flows through the EQ
         playerNode.play()
         // Start polling the playback position for progress updates
         startTimeTimer()
@@ -246,7 +246,7 @@ class EqualizerEngine {
         // Clamp the target into the valid range [0, duration]
         let clamped = min(max(seconds, 0), fileDuration)
         
-        // Stop the node — this also clears any scheduled buffers
+        // Stop the node, this also clears any scheduled buffers
         playerNode.stop()
         
         // Convert the seconds target to a sample frame index

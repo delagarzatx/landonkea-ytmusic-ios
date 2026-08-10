@@ -1,4 +1,4 @@
-// EqualizerView.swift — The equalizer screen where users can adjust audio frequencies and apply presets.
+// EqualizerView.swift, The equalizer screen where users can adjust audio frequencies and apply presets.
 
 import SwiftUI // SwiftUI provides the declarative UI building blocks (View, VStack, Slider, etc.) used throughout this file
 
@@ -11,16 +11,16 @@ import SwiftUI // SwiftUI provides the declarative UI building blocks (View, VSt
 /// NOTE ON STYLE: Rather than one huge `body` with everything nested inside, each visual
 /// section (power toggle, active preset label, frequency sliders, preset grid) is pulled
 /// out into its own small computed property below `body`. This is analogous to breaking a
-/// long function up into smaller, well-named helper functions — each piece is easier to
+/// long function up into smaller, well-named helper functions, each piece is easier to
 /// read, and `body` itself reads like a short outline of the screen.
 struct EqualizerView: View {
 
-    /// The equalizer manager — handles audio processing and settings.
+    /// The equalizer manager, handles audio processing and settings.
     /// `@EnvironmentObject` is a property wrapper (special `@`-prefixed syntax that adds
     /// behavior to a property) that reads a shared class instance from the SwiftUI
     /// environment instead of creating one locally. Because `EqualizerManager` publishes
     /// its changes (via `@Published` properties), SwiftUI automatically redraws this view
-    /// whenever the manager's settings change — e.g. a slider moving.
+    /// whenever the manager's settings change, e.g. a slider moving.
     @EnvironmentObject var equalizer: EqualizerManager
 
     /// Dismiss this modal. `@Environment(\.dismiss)` reads a built-in environment value:
@@ -34,7 +34,7 @@ struct EqualizerView: View {
     /// The name typed into that alert's TextField.
     @State private var newPresetName = ""
 
-    /// The main view content — the required `body` computed property every `View` must
+    /// The main view content, the required `body` computed property every `View` must
     /// provide. SwiftUI calls it to figure out what to draw; this "declarative" style
     /// means you describe *what* the UI should look like for the current data, not the
     /// step-by-step instructions for updating it.
@@ -88,7 +88,7 @@ struct EqualizerView: View {
 
             Spacer() // An invisible, flexible view that expands to fill space, pushing the toggle to the right
 
-            // Toggle switch — green when on, gray when off.
+            // Toggle switch, green when on, gray when off.
             // `Binding` is a two-way connection to a value: it lets this `Toggle` both
             // *read* the current state and *write* changes back, without the Toggle
             // needing to own the data itself. Here we build a custom `Binding` manually
@@ -99,7 +99,7 @@ struct EqualizerView: View {
                 get: { equalizer.isEnabled },
                 // When toggled, call the manager's toggle method.
                 // The `_` parameter name means "the new value SwiftUI would have set is
-                // intentionally ignored" — we don't need it because `toggle()` flips the
+                // intentionally ignored", we don't need it because `toggle()` flips the
                 // state itself.
                 set: { _ in equalizer.toggle() }
             ))
@@ -200,7 +200,7 @@ struct EqualizerView: View {
                 Spacer()
 
                 // Lets the user name and persist whatever they've currently
-                // got dialed in on the sliders — previously the app's only
+                // got dialed in on the sliders, previously the app's only
                 // "Custom" state was transient: switching presets, or
                 // relaunching the app, lost it with no way to get it back.
                 Button {
@@ -218,9 +218,9 @@ struct EqualizerView: View {
             // 3 columns = 3 buttons per row.
             LazyVGrid(
                 columns: [
-                    GridItem(.flexible()), // Column 1 — flexible width
-                    GridItem(.flexible()), // Column 2 — flexible width
-                    GridItem(.flexible())  // Column 3 — flexible width
+                    GridItem(.flexible()), // Column 1, flexible width
+                    GridItem(.flexible()), // Column 2, flexible width
+                    GridItem(.flexible())  // Column 3, flexible width
                 ],
                 spacing: 10 // Vertical spacing between rows
             ) {
@@ -229,7 +229,7 @@ struct EqualizerView: View {
                     PresetButton(
                         name: "Custom", // Preset name
                         isActive: true, // Always true in this branch, since the condition above already checked it's the active preset
-                        action: {} // No action needed — already on Custom, so tapping does nothing
+                        action: {} // No action needed, already on Custom, so tapping does nothing
                     )
                 }
 
@@ -251,7 +251,7 @@ struct EqualizerView: View {
 
                 // The user's own named custom presets, sorted the same way
                 // as the built-in list above. Long-press (or on iPad,
-                // right-click) to delete — matches the standard iOS pattern
+                // right-click) to delete, matches the standard iOS pattern
                 // for removing a saved item without a dedicated edit mode.
                 ForEach(Array(equalizer.customPresets.keys.sorted()), id: \.self) { name in
                     PresetButton(
@@ -293,7 +293,7 @@ struct PresetButton: View {
     /// `() -> Void` is a function type: "a closure that takes no arguments and returns
     /// nothing." Storing a closure as a property like this lets the parent view decide
     /// exactly what should happen on tap, while `PresetButton` itself only cares about
-    /// *how it looks*, not *what it does* — a common pattern for reusable components.
+    /// *how it looks*, not *what it does*, a common pattern for reusable components.
     let action: () -> Void
 
     /// The button's appearance and behavior.

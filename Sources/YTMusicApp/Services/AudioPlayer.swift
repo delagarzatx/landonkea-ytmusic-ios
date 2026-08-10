@@ -2,7 +2,7 @@ import AVFoundation  // Apple's framework for audio/video playback (AVPlayer, AV
 import Combine       // Apple's reactive programming framework (not heavily used here, but imported for future)
 import MediaPlayer   // Apple's framework for Control Center, lock screen, and AirPods integration
 import SwiftUI       // Apple's UI framework (needed for @MainActor and ObservableObject)
-import WidgetKit     // WidgetCenter.reloadTimelines — tells the Now Playing widget to redraw
+import WidgetKit     // WidgetCenter.reloadTimelines, tells the Now Playing widget to redraw
 
 // MARK: - Audio Player
 
@@ -46,7 +46,7 @@ class AudioPlayer: ObservableObject {
     @Published var duration: Double = 0
     
     /// Playback progress as a fraction (0.0 to 1.0).
-    /// This is a COMPUTED property — it recalculates every time it's accessed.
+    /// This is a COMPUTED property, it recalculates every time it's accessed.
     /// Used by progress bars and sliders to show playback position.
     /// Guard prevents division by zero when duration is 0.
     var progress: Double {
@@ -66,10 +66,10 @@ class AudioPlayer: ObservableObject {
     @Published var volume: Double = 1.0
     
     /// The full queue of songs. The UI reads this for the queue screen.
-    /// This is the source of truth — shuffle modifies this array.
+    /// This is the source of truth, shuffle modifies this array.
     ///
     /// `didSet` persists the queue to disk on every change (see
-    /// `saveQueueState()`), so it survives a relaunch — previously only
+    /// `saveQueueState()`), so it survives a relaunch, previously only
     /// recentlyPlayed/downloads/playlists did, and force-quitting mid-queue
     /// silently lost everything you'd lined up.
     @Published var queue: [NowPlaying] = [] {
@@ -96,7 +96,7 @@ class AudioPlayer: ObservableObject {
 
     /// Computed property: songs that came before the current song, in the
     /// order they'll be re-played if you step backward through them (most
-    /// recently played first — i.e. reversed from queue order).
+    /// recently played first, i.e. reversed from queue order).
     ///
     /// This is the queue-position counterpart to `recentlyPlayed` (which
     /// tracks a separate, longer-lived history across the whole app rather
@@ -135,14 +135,14 @@ class AudioPlayer: ObservableObject {
     ///
     /// WHY THIS EXISTS (reconciling PlayCountManager vs. StatsManager):
     /// Previously, StatsManager only ever learned about a song when it
-    /// played through to its natural end — skip to the next track after 5
+    /// played through to its natural end, skip to the next track after 5
     /// seconds and StatsManager never heard about it at all, while
     /// PlayCountManager (which increments on every play START) counted it
     /// immediately. That gap meant StatsManager's "most played" data quietly
     /// under-counted anything users bail on, which is exactly the wrong bias
     /// for building recommendations from it.
     ///
-    /// Now EVERY session — whether it ends naturally or gets skipped — is
+    /// Now EVERY session, whether it ends naturally or gets skipped, is
     /// reported exactly once via `finalizeCurrentSession(wasSkipped:)`, with
     /// the ACTUAL elapsed listening time (`currentTime`, not the full song
     /// duration). This flag just prevents double-reporting: the natural-end
@@ -161,13 +161,13 @@ class AudioPlayer: ObservableObject {
 
     /// The thumbnail URL whose artwork is currently cached in
     /// `cachedArtwork` below. Used by `updateNowPlayingInfo()` to skip
-    /// redundant artwork fetches on every 0.5s time-observer tick — see the
+    /// redundant artwork fetches on every 0.5s time-observer tick, see the
     /// comment there for why this matters.
     private var lastArtworkThumbnailUrl: String?
 
     /// The `MPMediaItemArtwork` built from `lastArtworkThumbnailUrl`.
     /// Re-applied to every `nowPlayingInfo` update (not just the tick that
-    /// fetched it) so lock-screen art doesn't flicker away — see
+    /// fetched it) so lock-screen art doesn't flicker away, see
     /// `updateNowPlayingInfo()`.
     private var cachedArtwork: MPMediaItemArtwork?
 
@@ -176,7 +176,7 @@ class AudioPlayer: ObservableObject {
     /// `updateNowPlayingInfo()` runs on every 0.5s progress tick (to keep
     /// the lock screen's elapsed time current), but the widget only needs
     /// a fresh App Group write + WidgetKit reload when the song or
-    /// play/pause state actually changes — not every tick. Comparing
+    /// play/pause state actually changes, not every tick. Comparing
     /// against this key is what makes that skip possible.
     private var lastWidgetSnapshotKey: String?
 
@@ -190,18 +190,18 @@ class AudioPlayer: ObservableObject {
     /// Updated every second by the timer. When it reaches 0, playback pauses.
     @Published var sleepTimerRemaining: TimeInterval = 0
 
-    /// Whether the active sleep timer is in "smart" mode — stop once the
+    /// Whether the active sleep timer is in "smart" mode, stop once the
     /// current queue (the album or playlist the user is listening to)
     /// finishes, rather than after a fixed duration.
     ///
     /// When this is true, `sleepTimerRemaining` is still kept updated every
     /// second for the countdown UI (see `updateQueueEndSleepTimerEstimate()`),
-    /// but it's only an ESTIMATE — the actual stop condition, checked in
+    /// but it's only an ESTIMATE, the actual stop condition, checked in
     /// `handleSongEnded()`, is queue position (currentIndex reaching the
     /// last item), not this countdown reaching zero. That estimate assumes
     /// every remaining track plays to completion at its full listed
     /// duration, which is usually right but can drift from reality (e.g.
-    /// the user skips around) — the real trigger never does.
+    /// the user skips around), the real trigger never does.
     @Published private(set) var sleepTimerStopsAtQueueEnd: Bool = false
 
     /// The date when the sleep timer was started.
@@ -358,7 +358,7 @@ class AudioPlayer: ObservableObject {
     ///   - artist: Artist name
     ///   - thumbnailUrl: URL to album art
     ///   - localURL: Local file URL (in the app's Documents/Downloads directory)
-    ///   - duration: Duration in seconds (0 if unknown — AVPlayer will detect it)
+    ///   - duration: Duration in seconds (0 if unknown, AVPlayer will detect it)
     func playLocal(
         videoId: String,
         title: String,
@@ -405,10 +405,10 @@ class AudioPlayer: ObservableObject {
         // Set up a time observer so currentTime/duration stay in sync and
         // we detect when the song ends. This uses the SAME shared helper as
         // playSong() below, so every playback path (streamed, local,
-        // crossfade) behaves identically — including posting the
+        // crossfade) behaves identically, including posting the
         // songDidFinishPlaying notification used for scrobbling/stats.
         // (Previously this path built its own closure that skipped the
-        // notification — that inconsistency is now fixed.)
+        // notification, that inconsistency is now fixed.)
         attachTimeObserver(to: newPlayer)
 
         self.player = newPlayer
@@ -426,7 +426,7 @@ class AudioPlayer: ObservableObject {
         newPlayer.play()
         // Apply the current playback speed. (Previously this path never set
         // .rate, so locally-played songs silently ignored the playback
-        // speed setting — fixed to match the streaming path below.)
+        // speed setting, fixed to match the streaming path below.)
         newPlayer.rate = Float(playbackRate)
         self.state = .playing
         updateNowPlayingInfo()
@@ -535,7 +535,7 @@ class AudioPlayer: ObservableObject {
         }
         
         // If the equalizer is enabled and this is a LOCAL file (a downloaded
-        // song — queue navigation often replays local URLs), use the EQ engine.
+        // song, queue navigation often replays local URLs), use the EQ engine.
         // This keeps the equalizer working when the queue advances to the
         // next downloaded song.
         if let eq = EqualizerManager.shared, eq.isEnabled, url.isFileURL {
@@ -552,7 +552,7 @@ class AudioPlayer: ObservableObject {
         
         // Step 5: Set up a periodic time observer.
         // See attachTimeObserver(to:) below for the full explanation of
-        // what this does and why — every playback path in this file shares
+        // what this does and why, every playback path in this file shares
         // that one implementation so behavior stays consistent.
         attachTimeObserver(to: newPlayer)
 
@@ -591,7 +591,7 @@ class AudioPlayer: ObservableObject {
     /// Three different call sites need this exact same observer (normal
     /// streaming playback, local-file playback, and the "new" player during
     /// a crossfade). Previously each one duplicated this closure by hand,
-    /// which had drifted out of sync — e.g. the local-file path forgot to
+    /// which had drifted out of sync, e.g. the local-file path forgot to
     /// post the songDidFinishPlaying notification. Having one shared
     /// implementation means every path behaves identically and future
     /// changes only need to happen in one place.
@@ -599,7 +599,7 @@ class AudioPlayer: ObservableObject {
     /// - Parameter player: The AVPlayer to observe. Its token is saved into
     ///   `timeObserverToken` so `stopPlayer()` can remove it later.
     private func attachTimeObserver(to player: AVPlayer) {
-        // CMTime = Core Media Time — Apple's way of representing time precisely.
+        // CMTime = Core Media Time, Apple's way of representing time precisely.
         // `seconds: 0.5` = fire every 0.5 seconds
         // `preferredTimescale: 600` = time precision. 600 means times are accurate
         // to 1/600th of a second (about 1.67ms). Higher = more precise but more CPU.
@@ -607,7 +607,7 @@ class AudioPlayer: ObservableObject {
         let interval = CMTime(seconds: 0.5, preferredTimescale: 600)
 
         // addPeriodicTimeObserver returns an opaque token we must save so
-        // we can remove the observer later (see stopPlayer()) — failing to
+        // we can remove the observer later (see stopPlayer()), failing to
         // remove it would leak memory and keep firing after the player is
         // gone.
         timeObserverToken = player.addPeriodicTimeObserver(
@@ -659,7 +659,7 @@ class AudioPlayer: ObservableObject {
     private func handleSongEnded() {
         // Smart sleep timer: if we've been asked to stop once the current
         // queue (album/playlist) finishes and this WAS the last song in
-        // it, stop here — deliberately overriding repeatMode, since
+        // it, stop here, deliberately overriding repeatMode, since
         // looping (.all) or repeating (.one) here would mean the timer
         // never actually stops anything.
         if isSleepTimerActive, sleepTimerStopsAtQueueEnd, currentIndex >= queue.count - 1 {
@@ -671,7 +671,7 @@ class AudioPlayer: ObservableObject {
 
         switch repeatMode {
         case .one:
-            // Repeat the current song — replay it from the beginning.
+            // Repeat the current song, replay it from the beginning.
             // Guard instead of force-unwrapping: currentSong is normally set
             // whenever a song is ending, but this callback originates from
             // an AVPlayer/EqualizerEngine closure, so we don't want a crash
@@ -688,7 +688,7 @@ class AudioPlayer: ObservableObject {
                 // Start crossfade transition to next song
                 performCrossfadeToNext()
             } else {
-                // No crossfade — just play the next song normally
+                // No crossfade, just play the next song normally
                 playNext()
             }
         }
@@ -711,7 +711,7 @@ class AudioPlayer: ObservableObject {
         
         // Safety check: make sure we haven't gone past the end
         guard currentIndex < queue.count else {
-            // At end of queue — stop playback
+            // At end of queue, stop playback
             state = .stopped
             currentSong = nil
             return
@@ -738,7 +738,7 @@ class AudioPlayer: ObservableObject {
 
         // Save the old player for the crossfade
         guard let oldPlayer = self.player else {
-            // No old player — just switch to the new one.
+            // No old player, just switch to the new one.
             // BUG FIX: this branch used to skip attaching a time observer
             // entirely, which meant currentTime would freeze and the song
             // would never be detected as "ended" (no auto-advance to the
@@ -792,7 +792,7 @@ class AudioPlayer: ObservableObject {
                 self.crossfadeProgress += (1.0 / Double(fadeSteps))
                 
                 if progress >= 1.0 {
-                    // Crossfade complete — clean up
+                    // Crossfade complete, clean up
                     timer.invalidate()
                     self.crossfadeTimer = nil
                     self.crossfadeProgress = 0
@@ -836,7 +836,7 @@ class AudioPlayer: ObservableObject {
         }
         
         guard let player = player else {
-            // No active AVPlayer — this happens right after launch when a
+            // No active AVPlayer, this happens right after launch when a
             // queue was restored from disk (see loadQueueState()) but
             // nothing has actually started playing yet. Start it now
             // instead of silently doing nothing.
@@ -861,8 +861,8 @@ class AudioPlayer: ObservableObject {
     /// PART OF RECONCILING PlayCountManager vs. StatsManager: PlayCountManager
     /// still counts every play START (used for the lightweight "Most Played"
     /// badge on Home), but StatsManager now hears about the REAL outcome of
-    /// every session — how long the user actually listened, and whether they
-    /// bailed — which is the signal that matters for recommendations (see
+    /// every session, how long the user actually listened, and whether they
+    /// bailed, which is the signal that matters for recommendations (see
     /// StatsManager's `mostPlayedSongs`, `onRepeatSongs`, and `skipCounts`).
     ///
     /// - Parameter wasSkipped: `false` when the song reached its natural end;
@@ -882,7 +882,7 @@ class AudioPlayer: ObservableObject {
                 "videoId": song.id,
                 "title": song.title,
                 "artist": song.artist,
-                // Actual elapsed listening time, NOT the full song duration —
+                // Actual elapsed listening time, NOT the full song duration,
                 // this is what makes skipped sessions honestly reported as
                 // "listened to 8 of 200 seconds" instead of not reported at all.
                 "durationPlayed": currentTime,
@@ -924,7 +924,7 @@ class AudioPlayer: ObservableObject {
 
         // Cancel any in-flight crossfade. Without this, skipping to a new
         // song while a crossfade is mid-animation leaves the old
-        // crossfadeTimer running in the background — it keeps firing every
+        // crossfadeTimer running in the background, it keeps firing every
         // ~0.1s and mutating volumes on players that are no longer part of
         // the active playback state.
         crossfadeTimer?.invalidate()
@@ -1071,19 +1071,19 @@ class AudioPlayer: ObservableObject {
         let nextIndex = currentIndex + 1
         
         if nextIndex < queue.count {
-            // There's a next song — play it
+            // There's a next song, play it
             currentIndex = nextIndex
             Task {
                 await playSong(queue[currentIndex])
             }
         } else if repeatMode == .all {
-            // End of queue but repeat all is on — loop back to start
+            // End of queue but repeat all is on, loop back to start
             currentIndex = 0
             Task {
                 await playSong(queue[currentIndex])
             }
         } else {
-            // End of queue, no repeat — stop
+            // End of queue, no repeat, stop
             stop()
         }
     }
@@ -1102,7 +1102,7 @@ class AudioPlayer: ObservableObject {
         }
         
         guard currentIndex > 0 else {
-            // At the beginning of the queue — restart current song
+            // At the beginning of the queue, restart current song
             seek(to: 0)
             return
         }
@@ -1116,12 +1116,12 @@ class AudioPlayer: ObservableObject {
     
     /// Jump back to a song already played earlier in the current queue
     /// (i.e. a song from `history`), without disturbing the rest of the
-    /// queue — everything between it and the current song simply becomes
+    /// queue, everything between it and the current song simply becomes
     /// "up next" again, the same way stepping backward one song at a time
     /// via `playPrevious()` would, just in one hop.
     ///
     /// - Parameter index: The song's position in the FULL queue array (not
-    ///   the reversed `history` slice — callers map from a history-relative
+    ///   the reversed `history` slice, callers map from a history-relative
     ///   index the same way QueueView already maps `upNext`-relative
     ///   indices back to the full queue).
     func playFromHistory(at index: Int) {
@@ -1158,7 +1158,7 @@ class AudioPlayer: ObservableObject {
         queue = songs
         currentIndex = min(index, songs.count - 1)
         Task {
-            // Donate resume shortcut — Siri learns "Resume my music"
+            // Donate resume shortcut, Siri learns "Resume my music"
             SiriShortcutsManager.donateResumePlayback()
             await playSong(queue[currentIndex])
         }
@@ -1187,7 +1187,7 @@ class AudioPlayer: ObservableObject {
     /// 2. Removed song IS the current song → play the next one (or stop)
     /// 3. Removed song was AFTER current → no adjustment needed
     func removeFromQueue(at index: Int) {
-        // Bounds check — don't crash on invalid indices
+        // Bounds check, don't crash on invalid indices
         guard index >= 0 && index < queue.count else { return }
         
         queue.remove(at: index)
@@ -1199,7 +1199,7 @@ class AudioPlayer: ObservableObject {
         } else if index == currentIndex {
             // Case 2: Removed the currently playing song
             if queue.isEmpty {
-                // Queue is empty — stop everything
+                // Queue is empty, stop everything
                 stop()
             } else {
                 // Play the song at the same index (which is now the next song)
@@ -1210,7 +1210,7 @@ class AudioPlayer: ObservableObject {
                 }
             }
         }
-        // Case 3: Removed a song after current — no adjustment needed
+        // Case 3: Removed a song after current, no adjustment needed
     }
     
     /// Move a song within the queue (for drag-to-reorder).
@@ -1306,7 +1306,7 @@ class AudioPlayer: ObservableObject {
     /// 1. Records the end date (current time + duration)
     /// 2. Starts a 1-second timer that updates the countdown display
     /// 3. When the timer fires and time is up, pauses playback
-    /// 4. The end date survives backgrounding — if the app is killed,
+    /// 4. The end date survives backgrounding, if the app is killed,
     ///    we can recalculate remaining time on relaunch
     func startSleepTimer(duration: TimeInterval) {
         // Cancel any existing timer first
@@ -1327,11 +1327,11 @@ class AudioPlayer: ObservableObject {
                 let remaining = endDate.timeIntervalSinceNow
 
                 if remaining <= 0 {
-                    // Timer expired — pause playback.
+                    // Timer expired, pause playback.
                     // togglePlayPause() pauses since a song is playing.
                     self.togglePlayPause()
                     // Restore full volume so the NEXT time the user presses
-                    // play (this song or another), it isn't silent — see
+                    // play (this song or another), it isn't silent, see
                     // the fade-out ramp below, which lowers the actual
                     // player/engine volume without touching `self.volume`.
                     self.restoreVolumeAfterSleepFade()
@@ -1353,7 +1353,7 @@ class AudioPlayer: ObservableObject {
     /// Called every second from the sleep timer's tick handler. Does
     /// nothing until `remaining` enters the last `sleepTimerFadeDuration`
     /// seconds, at which point it linearly scales the CURRENT player/engine
-    /// volume down to silent by the time `remaining` reaches 0 — without
+    /// volume down to silent by the time `remaining` reaches 0, without
     /// touching the published `volume` property (and therefore without
     /// moving the user-visible volume slider or being un-done by anything
     /// that reads `volume` elsewhere).
@@ -1374,7 +1374,7 @@ class AudioPlayer: ObservableObject {
         let fraction = max(0, remaining / sleepTimerFadeDuration)
         let fadedVolume = Float(baseVolume * fraction)
 
-        // Apply directly to whichever backend is actually playing — same
+        // Apply directly to whichever backend is actually playing, same
         // split AudioPlayer uses everywhere else (EQ engine for local
         // playback with the equalizer on, AVPlayer otherwise).
         if let eq = eqEngine {
@@ -1422,14 +1422,14 @@ class AudioPlayer: ObservableObject {
     }
 
     /// Start a "smart" sleep timer that stops playback once the current
-    /// queue — e.g. the album or playlist the user is listening to —
+    /// queue, e.g. the album or playlist the user is listening to,
     /// finishes, instead of after a fixed duration.
     ///
     /// Unlike `startSleepTimer(duration:)`, there's no fixed end date to
     /// count down to. Instead, `handleSongEnded()` checks
     /// `sleepTimerStopsAtQueueEnd` every time a song finishes and, once
     /// we're on the LAST song in `queue`, pauses right there instead of
-    /// advancing — even overriding `repeatMode` (`.all` would otherwise
+    /// advancing, even overriding `repeatMode` (`.all` would otherwise
     /// loop back to the start, `.one` would otherwise repeat the last
     /// song forever, both of which would mean the timer never actually
     /// stops anything).
@@ -1446,7 +1446,7 @@ class AudioPlayer: ObservableObject {
         updateQueueEndSleepTimerEstimate()
 
         // Runs once a second purely to keep the countdown UI (and the
-        // final fade-out) current — the actual stop is driven by queue
+        // final fade-out) current, the actual stop is driven by queue
         // position in `handleSongEnded()`, not by this timer reaching zero.
         sleepTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
             Task { @MainActor in
@@ -1462,7 +1462,7 @@ class AudioPlayer: ObservableObject {
     /// duration of every song still queued after it.
     ///
     /// This is a display estimate only (see the doc comment on
-    /// `sleepTimerStopsAtQueueEnd`) — it assumes the rest of the queue
+    /// `sleepTimerStopsAtQueueEnd`), it assumes the rest of the queue
     /// plays straight through, which is the common case but not guaranteed.
     private func updateQueueEndSleepTimerEstimate() {
         guard currentIndex >= 0, currentIndex < queue.count else {
@@ -1567,11 +1567,11 @@ class AudioPlayer: ObservableObject {
     ///
     /// IMPORTANT LIMITATION: this restores the queue's METADATA (titles,
     /// artwork, position) and shows it immediately in the mini player, but
-    /// does NOT start playback — YouTube's streaming URLs expire a few
+    /// does NOT start playback, YouTube's streaming URLs expire a few
     /// hours after they're issued (see the same limitation documented on
     /// OfflineManager), so a `NowPlaying.audioUrl` saved from a previous
     /// session may no longer be playable. Playback only actually starts
-    /// lazily, the first time the user presses Play — see
+    /// lazily, the first time the user presses Play, see
     /// `resumeFromRestoredQueueIfNeeded()`, called from `togglePlayPause()`.
     /// Downloaded (local file) songs don't have this problem, since their
     /// `audioUrl` is a stable file:// URL rather than a temporary stream.
@@ -1593,7 +1593,7 @@ class AudioPlayer: ObservableObject {
             currentIndex = persisted.currentIndex
 
             // Show the restored song in the mini player / lock screen right
-            // away, without touching `player`/`eqEngine` — actual playback
+            // away, without touching `player`/`eqEngine`, actual playback
             // is deferred until the user taps Play (see the limitation
             // note above).
             let song = persisted.songs[persisted.currentIndex]
@@ -1617,10 +1617,10 @@ class AudioPlayer: ObservableObject {
         guard player == nil, eqEngine == nil, let song = currentSong else { return }
 
         if let url = URL(string: song.audioUrl), url.isFileURL {
-            // Downloaded song — the file:// URL is still valid.
+            // Downloaded song, the file:// URL is still valid.
             Task { await playSongFromLocal(song, localURL: url) }
         } else {
-            // Streamed song — the URL may have expired since the last
+            // Streamed song, the URL may have expired since the last
             // session (see the limitation note on loadQueueState()).
             // playSong() will simply fail to load if so; there's no
             // existing error-surfacing path for playback failures in this
@@ -1723,7 +1723,7 @@ class AudioPlayer: ObservableObject {
         // Skip forward/backward ±15s (lock screen, AirPods, CarPlay
         // "±15 seconds" buttons). Previously only next/previous TRACK and
         // scrubbing were wired up here, even though the in-app player
-        // already supports 15s skip via skipForward()/skipBackward() —
+        // already supports 15s skip via skipForward()/skipBackward(),
         // this brings the lock screen up to parity with the in-app UI.
         // `preferredIntervals` tells the system which interval(s) to show
         // on the button itself (e.g. "15" printed on the skip icon).
@@ -1778,7 +1778,7 @@ class AudioPlayer: ObservableObject {
     /// We update this info whenever the song changes or playback position updates.
     private func updateNowPlayingInfo() {
         guard let song = currentSong else {
-            // Nothing playing — clear the info
+            // Nothing playing, clear the info
             MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
             updateWidgetSnapshot(song: nil)
             return
@@ -1805,7 +1805,7 @@ class AudioPlayer: ObservableObject {
         // disk cache hit (network round-trip + JPEG decode + wrapping).
         // `lastArtworkThumbnailUrl`/`cachedArtwork` remember the most
         // recently built artwork so we only redo that work when the song
-        // (and therefore its artwork) actually changes — every other tick
+        // (and therefore its artwork) actually changes, every other tick
         // just re-applies the already-built `cachedArtwork` below.
         if song.thumbnailUrl == lastArtworkThumbnailUrl, let artwork = cachedArtwork {
             info[MPMediaItemPropertyArtwork] = artwork
@@ -1828,7 +1828,7 @@ class AudioPlayer: ObservableObject {
                     // even though we're inside a background Task
                     await MainActor.run {
                         // Only cache/apply if we're still showing the same
-                        // song — guards against a slow fetch for a song the
+                        // song, guards against a slow fetch for a song the
                         // user has already skipped past applying stale art.
                         guard self.currentSong?.thumbnailUrl == song.thumbnailUrl else { return }
                         self.lastArtworkThumbnailUrl = song.thumbnailUrl
@@ -1850,7 +1850,7 @@ class AudioPlayer: ObservableObject {
     /// `NowPlayingSnapshot.swift`), and ask WidgetKit to redraw it.
     ///
     /// Guarded by `lastWidgetSnapshotKey` so this only writes + triggers a
-    /// widget reload when the song identity or play/pause state changes —
+    /// widget reload when the song identity or play/pause state changes,
     /// `updateNowPlayingInfo()` (this method's only caller) runs on every
     /// 0.5s progress tick, and reloading widget timelines that often would
     /// be wasteful (and Apple budgets how often an app may request
@@ -1861,7 +1861,7 @@ class AudioPlayer: ObservableObject {
     private func updateWidgetSnapshot(song: NowPlaying?) {
         guard let song else {
             // Only clear + reload once, the first time we transition to
-            // "nothing playing" — not on every subsequent tick.
+            // "nothing playing", not on every subsequent tick.
             if lastWidgetSnapshotKey != nil {
                 NowPlayingSnapshotStore.clear()
                 lastWidgetSnapshotKey = nil
@@ -1893,10 +1893,10 @@ class AudioPlayer: ObservableObject {
 
 /// Custom notification names used throughout the app for decoupled communication.
 extension Notification.Name {
-    /// Posted whenever a listen session ends — either the song reached its
+    /// Posted whenever a listen session ends, either the song reached its
     /// natural end OR it was skipped/interrupted partway through.
     /// UserInfo keys: "videoId" (String), "title" (String), "artist" (String),
-    /// "durationPlayed" (Double — actual elapsed seconds listened),
+    /// "durationPlayed" (Double, actual elapsed seconds listened),
     /// "wasSkipped" (Bool).
     static let songDidFinishPlaying = Notification.Name("songDidFinishPlaying")
 
@@ -1905,6 +1905,6 @@ extension Notification.Name {
     /// its own event so skip-tracking consumers don't need to filter the
     /// combined event by `wasSkipped`.
     /// UserInfo keys: "videoId" (String), "title" (String), "artist" (String),
-    /// "afterSeconds" (Double — how long the user listened before bailing).
+    /// "afterSeconds" (Double, how long the user listened before bailing).
     static let songWasSkipped = Notification.Name("songWasSkipped")
 }

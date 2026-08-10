@@ -12,12 +12,12 @@ added/removed or `project.yml` changes.
   separate module.
 - **Bundle ID:** `com.landonkea.ytmusic`
 - **Deployment target:** iOS 17.0
-- **Privacy usage strings** live in `project.yml` (they must stay there — the
+- **Privacy usage strings** live in `project.yml` (they must stay there, the
   app crashes without `NSSpeechRecognitionUsageDescription` and
   `NSMicrophoneUsageDescription`).
 - **Secrets** (currently just the InnerTube API key) are injected via
   `Config/Secrets.xcconfig`, which is gitignored. Before your first build,
-  copy `Config/Secrets.example.xcconfig` to `Config/Secrets.xcconfig` — the
+  copy `Config/Secrets.example.xcconfig` to `Config/Secrets.xcconfig`, the
   example file documents every key and has the real (public) InnerTube key
   value in its comments. Without this file the app builds but crashes on
   launch with a clear `fatalError` message telling you what to do.
@@ -67,7 +67,7 @@ Or use the test navigator in Xcode.
 compiles both `Sources/YTMusicApp` and `Sources/YTMusicAPI`). It exists so the
 package layout stays valid and tools that parse the package work.
 
-**Note:** `swift build` on a Mac cannot produce a runnable iOS app — SwiftPM
+**Note:** `swift build` on a Mac cannot produce a runnable iOS app, SwiftPM
 lacks a bundled iOS destination, so it cannot cross-link iOS executables. This
 is an Apple tooling limitation, not a project bug. The real build path is
 `xcodegen generate` + `xcodebuild` above.
@@ -87,7 +87,7 @@ is an Apple tooling limitation, not a project bug. The real build path is
   second download for the same song.
 
 ### Equalizer (real audio processing)
-- **Before:** `EqualizerManager.applyGainsToEQ()` was a stub — sliders updated
+- **Before:** `EqualizerManager.applyGainsToEQ()` was a stub, sliders updated
   values but nothing reached the audio.
 - **Fixed:** new `Services/EqualizerEngine.swift` runs playback through an
   `AVAudioEngine` graph (`playerNode → AVAudioUnitTimePitch → AVAudioUnitEQ(10
@@ -218,7 +218,7 @@ is an Apple tooling limitation, not a project bug. The real build path is
 - Subscribe/unsubscribe via API
 
 #### 10.2 Audio Enhancements
-- ~~EQ wiring~~ **DONE** — `EqualizerEngine` (AVAudioEngine + 10-band
+- ~~EQ wiring~~ **DONE**, `EqualizerEngine` (AVAudioEngine + 10-band
   `AVAudioUnitEQ`) now processes local/downloaded files when EQ is enabled.
   AVPlayer cannot be EQ'd, so streamed playback keeps using AVPlayer.
 - Tempo/pitch control (independent of speed)

@@ -18,14 +18,14 @@ struct LyricsView: View {
 
     /// `@EnvironmentObject` is a property wrapper (a special annotation that
     /// changes how a property behaves) meaning: "some ancestor view already
-    /// placed an `AudioPlayer` into the shared environment — give me a
+    /// placed an `AudioPlayer` into the shared environment, give me a
     /// reference to that same shared instance" rather than creating a new
     /// one here.
-    /// The audio player — provides current playback time and song info
+    /// The audio player, provides current playback time and song info
     @EnvironmentObject var audioPlayer: AudioPlayer
 
     /// `@StateObject` is like `@State`, but for reference types that
-    /// conform to (implement) the `ObservableObject` protocol — a protocol
+    /// conform to (implement) the `ObservableObject` protocol, a protocol
     /// (a contract a type promises to fulfill) that lets an object announce
     /// "one of my properties changed, please redraw anything that reads
     /// me." Unlike `@EnvironmentObject`, this view *creates and owns* the
@@ -38,7 +38,7 @@ struct LyricsView: View {
     /// The lyrics translator for multi-language support
     @StateObject private var translator = LyricsTranslator()
 
-    /// `Lyrics?` is an "optional" `Lyrics` — it can hold either a real
+    /// `Lyrics?` is an "optional" `Lyrics`, it can hold either a real
     /// `Lyrics` value or nothing (`nil`). `nil` here means "haven't fetched
     /// lyrics yet" or "fetch found nothing."
     /// The fetched lyrics (nil while loading)
@@ -90,7 +90,7 @@ struct LyricsView: View {
             fetchLyrics()
             startTimer()
         }
-        // `.onDisappear` runs when the view is removed from screen — we use
+        // `.onDisappear` runs when the view is removed from screen, we use
         // it to stop the timer so it doesn't keep firing (and wasting
         // battery/CPU) after the lyrics view is gone.
         .onDisappear {
@@ -103,7 +103,7 @@ struct LyricsView: View {
         // The `_` parameter name means we don't need the new value itself,
         // just the fact that it changed.
         .onChange(of: audioPlayer.currentSong?.id) { _ in
-            // Song changed — fetch new lyrics and clear translation
+            // Song changed, fetch new lyrics and clear translation
             fetchLyrics()
             showTranslated = false
             translator.clearTranslation()
@@ -133,7 +133,7 @@ struct LyricsView: View {
                 HStack(spacing: 4) {
                     // Show the flag of the target language.
                     // This is a chain of "ternary" expressions
-                    // (`condition ? valueIfTrue : valueIfFalse`) — each one
+                    // (`condition ? valueIfTrue : valueIfFalse`), each one
                     // checks the language name and falls through to the
                     // next check if it doesn't match, ending in a globe
                     // emoji as the fallback for any language without a
@@ -177,7 +177,7 @@ struct LyricsView: View {
     /// current state.
     ///
     /// `@ViewBuilder` lets this computed property return a different
-    /// concrete view type from each `if`/`else if`/`else` branch — normally
+    /// concrete view type from each `if`/`else if`/`else` branch, normally
     /// a Swift property must return one fixed type, but `@ViewBuilder`
     /// stitches the branches together behind the scenes.
     @ViewBuilder
@@ -197,7 +197,7 @@ struct LyricsView: View {
     }
 
     /// Wraps arbitrary content between two `Spacer()`s so it's vertically
-    /// centered — a small helper to avoid repeating the `Spacer/content/
+    /// centered, a small helper to avoid repeating the `Spacer/content/
     /// Spacer` pattern for each loading/empty state.
     private func centeredMessage<Content: View>(@ViewBuilder content: () -> Content) -> some View {
         VStack {
@@ -301,7 +301,7 @@ struct LyricsView: View {
 
         // Toggle between original and translated
         if showTranslated {
-            // Already showing translated — switch back to original
+            // Already showing translated, switch back to original
             showTranslated = false
             return
         }
@@ -336,7 +336,7 @@ struct LyricsView: View {
                 // `translator.isTranslating` every 0.1 seconds and only
                 // proceed once it flips back to false.
                 // `Task.sleep(nanoseconds:)` pauses this async task (without
-                // blocking the whole app) for the given duration —
+                // blocking the whole app) for the given duration,
                 // 100_000_000 nanoseconds = 0.1 seconds. `try?` converts a
                 // throwing call into an optional, silently ignoring the
                 // (rare) case where sleeping itself throws, since there's
@@ -455,7 +455,7 @@ private struct NoLyricsFoundMessage: View {
 private struct LanguagePickerSheet: View {
 
     /// `@Binding` is a property wrapper that holds a two-way reference to
-    /// state owned by a different (usually parent) view — reading it gives
+    /// state owned by a different (usually parent) view, reading it gives
     /// the current value, and writing it writes back into the original
     /// `@State` property in `LyricsView`. This is how a child view can
     /// change data it doesn't itself own.
@@ -518,7 +518,7 @@ struct SyncedLyricsDisplay: View {
     let lyrics: Lyrics
     let currentLineIndex: Int
 
-    /// Called when the user taps a lyrics line — passes the line index
+    /// Called when the user taps a lyrics line, passes the line index
     /// so the parent can seek to that timestamp
     var onLineTap: ((Int) -> Void)?
 
@@ -526,7 +526,7 @@ struct SyncedLyricsDisplay: View {
         // `ScrollViewReader` hands us a `proxy` object that can
         // programmatically scroll to a specific view inside the
         // `ScrollView` below (using the `.id(...)` tags we attach to each
-        // line) — that's how we auto-scroll to keep the currently sung
+        // line), that's how we auto-scroll to keep the currently sung
         // line visible.
         ScrollViewReader { proxy in
             ScrollView {
@@ -587,7 +587,7 @@ private struct LyricLineView: View {
 
     var body: some View {
         Text(text)
-            // Bigger font — title2 for inactive, title for active (karaoke feel)
+            // Bigger font, title2 for inactive, title for active (karaoke feel)
             .font(isActive ? .title : .title2)
             .fontWeight(isActive ? .bold : .regular)
             // Current line is bright white, others are dimmed
@@ -618,7 +618,7 @@ private struct LyricLineView: View {
                     }
                 }
             )
-            // Tap to seek — tapping any line jumps playback to that timestamp
+            // Tap to seek, tapping any line jumps playback to that timestamp
             .onTapGesture(perform: onTap)
             // Long press to copy this line
             .contextMenu {
@@ -634,7 +634,7 @@ private struct LyricLineView: View {
                 Button {
                     UIPasteboard.general.string = allText
                     // `UIActivityViewController` is the system iOS "Share
-                    // Sheet" — the panel offering Messages, Mail, AirDrop,
+                    // Sheet", the panel offering Messages, Mail, AirDrop,
                     // etc. It's a UIKit (the older, non-SwiftUI iOS UI
                     // framework) component, so we have to reach into UIKit
                     // APIs to present it.

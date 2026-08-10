@@ -13,8 +13,8 @@ struct HomeView: View {
 
     /// The API client handles loading home feed data from YouTube.
     /// @EnvironmentObject = injected by the parent (ContentView/App),
-    /// shared across all views in the app. It's a property wrapper — a
-    /// special annotation that changes how a property behaves — that pulls
+    /// shared across all views in the app. It's a property wrapper, a
+    /// special annotation that changes how a property behaves, that pulls
     /// a shared object out of the "environment" (a bag of values every view
     /// below the one that put them there can access) instead of us having
     /// to create or pass it in manually.
@@ -23,16 +23,16 @@ struct HomeView: View {
     /// The audio player handles playing songs.
     @EnvironmentObject var audioPlayer: AudioPlayer
 
-    /// The play count manager — provides most played song data.
+    /// The play count manager, provides most played song data.
     @EnvironmentObject var playCountManager: PlayCountManager
 
-    /// The stats manager — provides listening-history signal for the
+    /// The stats manager, provides listening-history signal for the
     /// "Made For You", "On Repeat", and "Recently Discovered" sections.
     @EnvironmentObject var statsManager: StatsManager
 
     /// The auto-generated "Made For You" mix. Loaded once via `.task` below
     /// (it involves network calls to fetch related songs), then kept in
-    /// local state — unlike `homeSections`/`chartsSections` it isn't owned
+    /// local state, unlike `homeSections`/`chartsSections` it isn't owned
     /// by `apiClient` because it's derived from local listening data plus
     /// the API, not a browse endpoint by itself.
     @State private var madeForYouMix: [SearchResult] = []
@@ -43,7 +43,7 @@ struct HomeView: View {
             // ScrollView makes the content scrollable vertically
             ScrollView {
                 // Which of the three states below we show depends entirely
-                // on `apiClient`'s current data — this is "declarative UI":
+                // on `apiClient`'s current data, this is "declarative UI":
                 // we describe what each state looks like, and SwiftUI
                 // re-renders automatically whenever `apiClient`'s published
                 // properties change.
@@ -77,7 +77,7 @@ struct HomeView: View {
                 // "Made For You" needs a handful of related-songs network
                 // calls (see MadeForYouEngine), so it's kept separate from
                 // the home/charts load above and only (re)built once per
-                // appearance — not on every re-render.
+                // appearance, not on every re-render.
                 if madeForYouMix.isEmpty {
                     madeForYouMix = await MadeForYouEngine.build(stats: statsManager, apiClient: apiClient)
                 }
@@ -104,13 +104,13 @@ struct HomeView: View {
     /// overall structure (NavigationView + ScrollView + modifiers).
     ///
     /// `@ViewBuilder` lets this computed property contain an `if/else if/else`
-    /// that returns a different concrete view from each branch — normally a
+    /// that returns a different concrete view from each branch, normally a
     /// Swift property can only return one fixed type, but `@ViewBuilder`
     /// secretly combines the branches into a single "either-or" view type.
     @ViewBuilder
     private var homeContent: some View {
         if apiClient.isLoading && apiClient.homeSections.isEmpty {
-            // STATE 1: Initial load — show skeleton placeholders.
+            // STATE 1: Initial load, show skeleton placeholders.
             // These look like the actual content cards but are gray
             // rectangles with a shimmer animation.
             LazyVStack(spacing: 24) {
@@ -123,7 +123,7 @@ struct HomeView: View {
             // STATE 2: Loaded but nothing to show (empty home feed)
             HomeEmptyState()
         } else {
-            // STATE 3: Content loaded — show the sections
+            // STATE 3: Content loaded, show the sections
             loadedSections
         }
     }
@@ -139,7 +139,7 @@ struct HomeView: View {
             // ── RECENTLY PLAYED SECTION ───────────────────
             // Shows songs the user recently listened to.
             // Only shown if there are songs in the history.
-            // `!audioPlayer.recentlyPlayed.isEmpty` — the `!` here is
+            // `!audioPlayer.recentlyPlayed.isEmpty`, the `!` here is
             // boolean "not", flipping true/false; it means "the list is
             // NOT empty", i.e. there's at least one song.
             if !audioPlayer.recentlyPlayed.isEmpty {
@@ -157,7 +157,7 @@ struct HomeView: View {
 
             // ── ON REPEAT SECTION ────────────────────────
             // Songs in heavy rotation over the last few weeks (not all-time,
-            // like Most Played above — see StatsManager.onRepeatSongs).
+            // like Most Played above, see StatsManager.onRepeatSongs).
             let onRepeat = getOnRepeatSongs()
             if !onRepeat.isEmpty {
                 OnRepeatSection(songs: onRepeat)
@@ -212,7 +212,7 @@ struct HomeView: View {
 
         for item in topPlayed {
             // `first(where:)` scans the array and returns the first element
-            // matching the condition, or `nil` if none match — that's why
+            // matching the condition, or `nil` if none match, that's why
             // we can `if let` it. This looks up the full song info
             // (title/artist/thumbnail) for a play-count entry that only
             // stores a video ID and a count.
@@ -328,7 +328,7 @@ struct SectionView: View {
     /// 3. Once we have the streaming URL, we pass it to AudioPlayer to play
     ///
     /// This 2-step process (metadata → stream URL) is because YouTube doesn't
-    /// include streaming URLs in browse/search responses — they're only
+    /// include streaming URLs in browse/search responses, they're only
     /// available from the player endpoint, and they expire after a few hours.
     private func playItem(_ item: BrowseItem) {
         // Task = start an async operation without blocking the UI
@@ -462,7 +462,7 @@ struct RecentlyPlayedSection: View {
         //
         // BUG FIX: previously `selectedSong`/`showSongInfo` were set by the
         // "Song Info" context-menu action but nothing ever presented a
-        // sheet, so tapping "Song Info" appeared to do nothing — the state
+        // sheet, so tapping "Song Info" appeared to do nothing, the state
         // was set but never read anywhere. This `.sheet` is what was
         // missing to actually show the song's detail view.
         .sheet(isPresented: $showSongInfo) {
@@ -499,7 +499,7 @@ private struct RecentlyPlayedCard: View {
 
     var body: some View {
         // `Button(action:)` makes its whole label tappable and runs
-        // `action` (a closure — a block of code passed in as a value) when
+        // `action` (a closure, a block of code passed in as a value) when
         // tapped.
         Button(action: onTap) {
             VStack(alignment: .leading, spacing: 6) {
@@ -535,7 +535,7 @@ private struct RecentlyPlayedCard: View {
                     .frame(width: 120, alignment: .leading)
             }
         }
-        // `.contextMenu` attaches a long-press menu to this view — hold your
+        // `.contextMenu` attaches a long-press menu to this view, hold your
         // finger down on the card and this list of actions pops up.
         // Long-press menu with Song Info option
         .contextMenu {
@@ -579,7 +579,7 @@ struct MostPlayedSection: View {
                     // (0, 1, 2, ...). We only need the index for the `id:`
                     // parameter below (tuples aren't `Identifiable` on their
                     // own), so `ForEach` is told explicitly to identify rows
-                    // by `\.element.song.id` — the underlying song's id —
+                    // by `\.element.song.id`, the underlying song's id,
                     // via a "key path" (a `\.` expression that points at a
                     // property instead of reading it immediately).
                     ForEach(Array(songs.prefix(10).enumerated()), id: \.element.song.id) { _, item in
@@ -746,7 +746,7 @@ struct RecentlyDiscoveredSection: View {
 
 /// A horizontal carousel showing the auto-generated "Made For You" mix (see
 /// MadeForYouEngine). Unlike the sections above, these are `SearchResult`s
-/// (metadata only, no streaming URL yet) rather than `NowPlaying` — the
+/// (metadata only, no streaming URL yet) rather than `NowPlaying`, the
 /// streaming URL is resolved on tap, same as every other browse card.
 struct MadeForYouSection: View {
     @EnvironmentObject var audioPlayer: AudioPlayer
@@ -784,7 +784,7 @@ struct MadeForYouSection: View {
         }
     }
 
-    /// Resolve the streaming URL and play — same 2-step flow as
+    /// Resolve the streaming URL and play, same 2-step flow as
     /// `SectionView.playItem(_:)`: browse/related results only include
     /// metadata, not the (short-lived) audio URL.
     private func playSearchResult(_ result: SearchResult) {

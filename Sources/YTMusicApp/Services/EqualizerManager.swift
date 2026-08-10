@@ -8,12 +8,12 @@ import SwiftUI
 ///
 /// WHAT IS AN EQUALIZER?
 /// An equalizer (EQ) adjusts the volume of different frequency ranges in audio.
-/// - Bass (low frequencies): 60Hz-250Hz — the "thump" you feel in your chest
-/// - Mids (mid frequencies): 250Hz-4kHz — vocals, guitars, most instruments
-/// - Treble (high frequencies): 4kHz-16kHz — cymbals, hi-hats, sparkle
+/// - Bass (low frequencies): 60Hz-250Hz, the "thump" you feel in your chest
+/// - Mids (mid frequencies): 250Hz-4kHz, vocals, guitars, most instruments
+/// - Treble (high frequencies): 4kHz-16kHz, cymbals, hi-hats, sparkle
 ///
 /// HOW IT WORKS:
-/// This class is the "brains" of the EQ — it stores the settings and
+/// This class is the "brains" of the EQ, it stores the settings and
 /// exposes methods the UI calls (applyPreset, setBand, toggle). It does
 /// NOT own the audio processing itself. The actual equalizer lives in
 /// EqualizerEngine (AVAudioUnitEQ inside an AVAudioEngine), which is used
@@ -22,7 +22,7 @@ import SwiftUI
 ///
 /// WHY NOT EVERYTHING?
 /// iOS does not let apps insert an equalizer into AVPlayer's audio path.
-/// Streamed songs therefore cannot be equalized — the equalizer only
+/// Streamed songs therefore cannot be equalized, the equalizer only
 /// affects downloaded (offline) songs played through EqualizerEngine.
 ///
 /// We provide presets (Flat, Bass Boost, etc.) that set all 10 bands at once
@@ -32,7 +32,7 @@ import SwiftUI
 /// This is a protocol (a contract a type promises to follow) from SwiftUI's
 /// Combine-based data flow. Conforming to it means SwiftUI views can
 /// "subscribe" to this object and automatically redraw themselves whenever
-/// one of its `@Published` properties changes — we never have to manually
+/// one of its `@Published` properties changes, we never have to manually
 /// tell the UI to refresh.
 class EqualizerManager: ObservableObject {
     
@@ -66,7 +66,7 @@ class EqualizerManager: ObservableObject {
     /// `["Gym Mix": [8, 6, 4, ...]]`. Unlike the built-in `presets`
     /// dictionary (a `static let`, baked into the app), these are created
     /// by the user from whatever they've dialed in on the sliders and
-    /// persisted to UserDefaults so they survive a relaunch — previously
+    /// persisted to UserDefaults so they survive a relaunch, previously
     /// there was only a transient, unsaveable "Custom" state that reverted
     /// the moment you picked a different preset or restarted the app.
     @Published private(set) var customPresets: [String: [Double]] = [:]
@@ -84,16 +84,16 @@ class EqualizerManager: ObservableObject {
     /// These are the standard frequencies used by most music players.
     /// Each band controls a range around its center frequency.
     static let bandFrequencies: [Double] = [
-        32,      // Sub-bass — very low rumble (kick drums, bass guitar)
-        64,      // Bass — deep thump (bass guitar, kick drum body)
-        125,     // Low-mid bass — warmth (lower vocals, guitar body)
-        250,     // Mid — fullness (vocals, guitar, piano)
-        500,     // Low-mid treble — clarity (vocal articulation)
-        1000,    // Mid treble — presence (vocal brightness, snare)
-        2000,    // Upper-mid treble — definition (guitar picking, vocal edge)
-        4000,    // Treble — attack (cymbal crash, hi-hat attack)
-        8000,    // Upper treble — sparkle (cymbal shimmer, air)
-        16000    // Brilliance — ultra-high (harmonic overtones, air)
+        32,      // Sub-bass, very low rumble (kick drums, bass guitar)
+        64,      // Bass, deep thump (bass guitar, kick drum body)
+        125,     // Low-mid bass, warmth (lower vocals, guitar body)
+        250,     // Mid, fullness (vocals, guitar, piano)
+        500,     // Low-mid treble, clarity (vocal articulation)
+        1000,    // Mid treble, presence (vocal brightness, snare)
+        2000,    // Upper-mid treble, definition (guitar picking, vocal edge)
+        4000,    // Treble, attack (cymbal crash, hi-hat attack)
+        8000,    // Upper treble, sparkle (cymbal shimmer, air)
+        16000    // Brilliance, ultra-high (harmonic overtones, air)
     ]
     
     /// Human-readable labels for each frequency band.
@@ -108,40 +108,40 @@ class EqualizerManager: ObservableObject {
     /// Each preset is an array of 10 gain values (one per frequency band).
     /// Values are in decibels: -12.0 to +12.0.
     static let presets: [String: [Double]] = [
-        // Flat — no change, all bands at 0 dB
+        // Flat, no change, all bands at 0 dB
         "Flat": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
         
-        // Bass Boost — boosts low frequencies for more thump
+        // Bass Boost, boosts low frequencies for more thump
         "Bass Boost": [8, 6, 4, 2, 0, 0, 0, 0, 0, 0],
         
-        // Treble Boost — boosts high frequencies for more sparkle
+        // Treble Boost, boosts high frequencies for more sparkle
         "Treble Boost": [0, 0, 0, 0, 0, 2, 4, 6, 8, 8],
         
-        // Vocal — emphasizes mid-range for clearer speech/lyrics
+        // Vocal, emphasizes mid-range for clearer speech/lyrics
         "Vocal": [0, 0, 0, 2, 4, 4, 2, 0, 0, 0],
         
-        // Rock — boosts bass and treble, cuts mids slightly (classic "smile" curve)
+        // Rock, boosts bass and treble, cuts mids slightly (classic "smile" curve)
         "Rock": [6, 4, 0, -2, 0, 2, 4, 6, 6, 4],
         
-        // Pop — boosts bass and treble for a punchy sound
+        // Pop, boosts bass and treble for a punchy sound
         "Pop": [4, 2, 0, 0, 2, 4, 4, 2, 2, 0],
         
-        // Jazz — warm mids and smooth treble
+        // Jazz, warm mids and smooth treble
         "Jazz": [0, 2, 4, 4, 2, 0, 2, 4, 2, 0],
         
-        // Classical — wide dynamic range, gentle boost across spectrum
+        // Classical, wide dynamic range, gentle boost across spectrum
         "Classical": [4, 2, 0, 0, 0, 0, 0, 2, 4, 6],
         
-        // Electronic — heavy bass, crisp highs for EDM/dance
+        // Electronic, heavy bass, crisp highs for EDM/dance
         "Electronic": [8, 6, 2, 0, 0, 0, 2, 4, 6, 8],
         
-        // Acoustic — warm, natural sound for acoustic instruments
+        // Acoustic, warm, natural sound for acoustic instruments
         "Acoustic": [2, 4, 4, 2, 0, 0, 2, 4, 2, 0],
         
-        // Hip-Hop — deep bass, clear mids for vocals
+        // Hip-Hop, deep bass, clear mids for vocals
         "Hip-Hop": [8, 6, 2, 0, 2, 0, 0, 2, 4, 2],
         
-        // Loudness — boosts everything for low-volume listening
+        // Loudness, boosts everything for low-volume listening
         "Loudness": [6, 4, 0, -2, 0, 0, -2, 2, 6, 8]
     ]
     
@@ -158,7 +158,7 @@ class EqualizerManager: ObservableObject {
     /// Apply a preset by name.
     ///
     /// Checks the built-in `presets` dictionary first, then the user's
-    /// saved `customPresets` — so this one method works for either kind,
+    /// saved `customPresets`, so this one method works for either kind,
     /// and callers (EqualizerView) don't need to know which list a given
     /// preset name came from.
     ///
@@ -279,7 +279,7 @@ class EqualizerManager: ObservableObject {
     /// Save `customPresets` to UserDefaults.
     ///
     /// `[String: [Double]]` is a "property list" compatible type (only
-    /// Strings, Numbers, and nested collections of those) — `UserDefaults`
+    /// Strings, Numbers, and nested collections of those), `UserDefaults`
     /// can store it directly, no manual JSON encoding needed, the same way
     /// `isEnabled`/`activePreset`/`bandGains` are stored above.
     private func saveCustomPresets() {

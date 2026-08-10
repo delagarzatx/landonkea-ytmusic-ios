@@ -11,18 +11,18 @@ import SwiftUI // Imports the SwiftUI framework, which provides all the UI compo
 /// NOTE ON STYLE: `body` is kept short by delegating each visual chunk (header, loading
 /// spinner, scroll row, individual song card) to its own small computed property or
 /// helper view. This is the same idea as breaking a long function into smaller, clearly
-/// named helper functions — it makes each piece easy to read and test in isolation.
+/// named helper functions, it makes each piece easy to read and test in isolation.
 struct RelatedSongsView: View { // Declares a SwiftUI View struct; View is the protocol all UI components conform to
 
     /// The YouTube video ID used to fetch related song recommendations.
-    /// This is a `let` (constant) property — it's set once when the view is created.
+    /// This is a `let` (constant) property, it's set once when the view is created.
     /// SwiftUI still notices when a *new* `RelatedSongsView` is created with a different
     /// `videoId` (e.g. because the parent view re-renders with a new song), which is
     /// what triggers the `.onChange(of:)` modifier further down.
     let videoId: String
 
     /// The API client injected from the environment for making YouTube Music network requests.
-    /// `@EnvironmentObject` means "don't construct this here — read it from the shared
+    /// `@EnvironmentObject` means "don't construct this here, read it from the shared
     /// environment that a parent view supplied via `.environmentObject(...)`." It's a way
     /// to share one instance of a class across many views without manually passing it down
     /// through every initializer.
@@ -40,7 +40,7 @@ struct RelatedSongsView: View { // Declares a SwiftUI View struct; View is the p
     @State private var relatedSongs: [SearchResult] = []
 
     /// A flag that tracks whether the network request for related songs is currently in
-    /// progress. `@State` again — toggling this shows/hides the `ProgressView` spinner.
+    /// progress. `@State` again, toggling this shows/hides the `ProgressView` spinner.
     @State private var isLoading = false
 
     /// The required computed property that defines the view's layout and content.
@@ -68,7 +68,7 @@ struct RelatedSongsView: View { // Declares a SwiftUI View struct; View is the p
     // MARK: - Subviews
     // "MARK:" comments are just bookmarks for Xcode's navigator/minimap; they don't affect behavior.
 
-    /// Section header — a row containing an icon and the word "Related".
+    /// Section header, a row containing an icon and the word "Related".
     private var headerView: some View {
         HStack { // A horizontal stack that places the icon and text side-by-side
             Image(systemName: "arrow.triangle.2.circlepath") // SF Symbol for a circular-arrow icon, suggesting "related" or "refresh"
@@ -79,7 +79,7 @@ struct RelatedSongsView: View { // Declares a SwiftUI View struct; View is the p
         }
     }
 
-    /// Loading indicator — shown while the API call is in flight.
+    /// Loading indicator, shown while the API call is in flight.
     /// Marked `@ViewBuilder` so we can conditionally return either the spinner or nothing
     /// at all, without needing to wrap everything in an `if`/`else` that produces two
     /// different concrete view types.
@@ -92,7 +92,7 @@ struct RelatedSongsView: View { // Declares a SwiftUI View struct; View is the p
         }
     }
 
-    /// Horizontal scroll of related songs — rendered only after songs have been loaded.
+    /// Horizontal scroll of related songs, rendered only after songs have been loaded.
     @ViewBuilder
     private var relatedSongsRow: some View {
         if !relatedSongs.isEmpty { // Only displays the scroll view when the array contains at least one song
@@ -120,14 +120,14 @@ struct RelatedSongsView: View { // Declares a SwiftUI View struct; View is the p
             VStack(alignment: .leading, spacing: 6) { // Stacks the thumbnail, title, and artist vertically
                 songThumbnail(url: song.thumbnailUrl)
 
-                // Song title — displays below the thumbnail
+                // Song title, displays below the thumbnail
                 Text(song.title) // The song's title text, taken from the SearchResult model
                     .font(.caption) // Uses the system caption font (small, intended for supplementary text)
                     .fontWeight(.medium) // Medium font weight for better readability at small sizes
                     .lineLimit(2) // Limits the title to at most 2 lines, adding an ellipsis if truncated
                     .frame(width: 120, alignment: .leading) // Matches the thumbnail width, left-aligns the text
 
-                // Artist name — displayed below the title
+                // Artist name, displayed below the title
                 Text(song.artist) // The artist name text from the SearchResult model
                     .font(.caption2) // Uses an even smaller font size than caption for secondary info
                     .foregroundColor(.secondary) // Muted gray color to visually de-emphasize compared to the title
@@ -137,7 +137,7 @@ struct RelatedSongsView: View { // Declares a SwiftUI View struct; View is the p
         }
     }
 
-    /// Album art thumbnail — loads the image from the URL asynchronously, showing a
+    /// Album art thumbnail, loads the image from the URL asynchronously, showing a
     /// placeholder while it downloads or if it fails to load.
     /// - Parameter url: The thumbnail image URL string, as returned by the API.
     private func songThumbnail(url: String) -> some View {
@@ -206,7 +206,7 @@ struct RelatedSongsView: View { // Declares a SwiftUI View struct; View is the p
 // MARK: - Preview
 
 #Preview { // SwiftUI macro that generates a live preview in Xcode's canvas or Swift Previews
-    RelatedSongsView(videoId: "dQw4w9WgXcQ") // Creates an instance with a sample video ID (Rick Astley — "Never Gonna Give You Up")
+    RelatedSongsView(videoId: "dQw4w9WgXcQ") // Creates an instance with a sample video ID (Rick Astley, "Never Gonna Give You Up")
         .environmentObject(APIClient()) // Injects a fresh APIClient into the environment for the preview to use
         .environmentObject(AudioPlayer()) // Injects a fresh AudioPlayer into the environment for the preview to use
 }

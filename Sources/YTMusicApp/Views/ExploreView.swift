@@ -5,11 +5,11 @@ import SwiftUI
 /// Browse new releases, moods, and genres from YouTube Music.
 ///
 /// This view has three tabs:
-/// 1. New Releases — recently released albums and singles
-/// 2. Moods & Genres — curated playlists by mood or genre
-/// 3. Explore — combined feed from YouTube Music's explore page
+/// 1. New Releases, recently released albums and singles
+/// 2. Moods & Genres, curated playlists by mood or genre
+/// 3. Explore, combined feed from YouTube Music's explore page
 ///
-/// `struct ExploreView: View` declares a SwiftUI "View" — a description of
+/// `struct ExploreView: View` declares a SwiftUI "View", a description of
 /// some UI. SwiftUI is a "declarative" UI framework, which means instead of
 /// writing step-by-step instructions for how to draw the screen, you just
 /// describe *what* the screen should look like for the current state, and
@@ -20,7 +20,7 @@ struct ExploreView: View {
 
     /// `@EnvironmentObject` is a "property wrapper" (a special annotation that
     /// changes how a property behaves). It means: "don't create this value
-    /// here — expect some ancestor view to have already placed one into the
+    /// here, expect some ancestor view to have already placed one into the
     /// environment (a shared bag of values available to every view below it
     /// in the view tree), and hand me a reference to it." If no ancestor
     /// provides an `APIClient`, the app will crash at runtime, so whoever
@@ -34,7 +34,7 @@ struct ExploreView: View {
     /// `@State` is a property wrapper for simple, view-local data. When a
     /// `@State` value changes, SwiftUI automatically re-runs (re-renders)
     /// this view's `body` so the screen reflects the new value. `private`
-    /// means only this view's own code can read or write it — nothing
+    /// means only this view's own code can read or write it, nothing
     /// outside `ExploreView` should reach in and change it directly.
     /// Selected tab: 0 = New Releases, 1 = Moods & Genres, 2 = Explore
     @State private var selectedTab = 0
@@ -51,7 +51,7 @@ struct ExploreView: View {
     /// Whether any data is currently loading
     @State private var isLoading = true
 
-    /// `String?` is an "optional" String — it can either hold a real String
+    /// `String?` is an "optional" String, it can either hold a real String
     /// value or hold nothing at all (`nil`). Swift forces you to explicitly
     /// handle the "nothing" case before using the value, which prevents a
     /// whole category of crashes common in other languages. Here, `nil`
@@ -78,7 +78,7 @@ struct ExploreView: View {
         .navigationTitle("Discover")
         .navigationBarTitleDisplayMode(.inline)
         // `.task` is a "view modifier" (a function that wraps a view and
-        // returns a new, modified view — SwiftUI's whole styling/behavior
+        // returns a new, modified view, SwiftUI's whole styling/behavior
         // system is built from chaining these). `.task` runs the given
         // asynchronous closure (a self-contained block of code that can be
         // passed around and executed later) automatically when the view
@@ -96,7 +96,7 @@ struct ExploreView: View {
     /// `body` stays short and each piece of UI has a clear name.
     private var tabPicker: some View {
         // `Picker` is a control that lets the user choose one option from a
-        // set. `selection: $selectedTab` passes a "Binding" — a two-way
+        // set. `selection: $selectedTab` passes a "Binding", a two-way
         // connection to the `selectedTab` @State property. The `$` prefix
         // turns a `@State` property into a Binding: the Picker can both
         // read the current value AND write a new value back into
@@ -202,7 +202,7 @@ struct ExploreView: View {
                     // `EmptyView()` renders nothing. `selectedTab` can only
                     // ever be 0, 1, or 2 (those are the only tags the Picker
                     // above offers), so this branch is unreachable in
-                    // practice — but `switch` over an `Int` must still be
+                    // practice, but `switch` over an `Int` must still be
                     // "exhaustive" (cover every possible value), so Swift
                     // requires a `default` case.
                     EmptyView()
@@ -265,12 +265,12 @@ struct ExploreView: View {
         case .artist:
             ArtistView(channelId: item.id)
         case .playlist:
-            // Playlists open inline — show a simple text view
+            // Playlists open inline, show a simple text view
             // Full playlist browsing requires API support for fetching
             // playlist contents by browseId (future enhancement).
             PlaylistBrowseView(browseId: item.id, title: item.title)
         case .song:
-            // Songs play inline — no navigation
+            // Songs play inline, no navigation
             // Show a song detail view instead.
             // SongDetailView takes the song info as individual parameters.
             SongDetailView(
@@ -287,7 +287,7 @@ struct ExploreView: View {
 // MARK: - Category Carousel List
 
 /// Renders a list of `ExploreCategory` sections, each as a title followed by
-/// a horizontally scrolling carousel of items — or an empty-state message if
+/// a horizontally scrolling carousel of items, or an empty-state message if
 /// there are no categories yet.
 ///
 /// This one component replaces what used to be three nearly-identical blocks
@@ -309,7 +309,7 @@ struct CategoryCarouselList: View {
     /// A closure (a chunk of code passed around like a value) that, given a
     /// `BrowseItem`, produces the view to navigate to when that item is
     /// tapped. Passing behavior in as a closure lets this view stay generic
-    /// — it doesn't need to know anything about albums, artists, or songs.
+    ///, it doesn't need to know anything about albums, artists, or songs.
     let destination: (BrowseItem) -> AnyView
 
     /// Convenience initializer that lets callers pass a `@ViewBuilder`
@@ -409,7 +409,7 @@ private struct ExploreItemCard: View {
                 case .failure:
                     // `URL(string:)` returns nil (and AsyncImage reports
                     // `.failure`) if `item.thumbnailUrl` is empty or
-                    // malformed, or if the download itself fails — showing
+                    // malformed, or if the download itself fails, showing
                     // this gray placeholder instead of crashing keeps the
                     // app safe even when the API returns unexpected data.
                     RoundedRectangle(cornerRadius: 8)

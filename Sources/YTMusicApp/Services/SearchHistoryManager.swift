@@ -3,7 +3,7 @@ import SwiftUI
 
 // MARK: - Search History Manager
 
-/// Manages the user's search history — saving, loading, and clearing past searches.
+/// Manages the user's search history, saving, loading, and clearing past searches.
 ///
 /// RESPONSIBILITIES:
 /// - Save search queries when the user performs a search
@@ -23,7 +23,7 @@ import SwiftUI
 /// `searches` to display recent searches when the search bar is focused.
 ///
 /// This is a `class` (reference type), not a `struct` (value type), so that
-/// every part of the app sharing this object sees the exact same history —
+/// every part of the app sharing this object sees the exact same history,
 /// there's one shared instance, not separate copies. Conforming to
 /// `ObservableObject` lets SwiftUI views watch it and re-render themselves
 /// automatically whenever its `@Published` data changes.
@@ -55,7 +55,7 @@ class SearchHistoryManager: ObservableObject {
     /// Sets up the file path and calls loadHistory() to populate
     /// the `searches` array from the JSON file.
     init() {
-        // Get the Documents directory — this is where iOS apps store user data.
+        // Get the Documents directory, this is where iOS apps store user data.
         // `FileManager.default` is a shared, ready-to-use file system helper.
         // `.documentDirectory` in `.userDomainMask` is the app's own private,
         // sandboxed folder that survives between app launches. This call
@@ -116,7 +116,7 @@ class SearchHistoryManager: ObservableObject {
     /// single `guard let`.
     private func trimmedNonEmptyQuery(_ query: String) -> String? {
         // `.trimmingCharacters(in:)` strips leading/trailing characters that
-        // match a given set — `.whitespacesAndNewlines` covers spaces, tabs,
+        // match a given set, `.whitespacesAndNewlines` covers spaces, tabs,
         // and line breaks, so " rock  " becomes "rock".
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? nil : trimmed
@@ -147,7 +147,7 @@ class SearchHistoryManager: ObservableObject {
     ///
     /// Uses JSONEncoder to convert the [String] array to Data,
     /// then writes it to the history file. If encoding fails,
-    /// we log the error but don't crash — history is nice-to-have.
+    /// we log the error but don't crash, history is nice-to-have.
     private func saveHistory() {
         // `do`/`catch` is Swift's error-handling construct: statements
         // marked `try` inside `do` can "throw" an error, which jumps
@@ -169,7 +169,7 @@ class SearchHistoryManager: ObservableObject {
     /// Reads the JSON file and decodes it back to [String].
     /// If the file doesn't exist or decoding fails, starts with empty history.
     private func loadHistory() {
-        // Check if file exists — first launch won't have one.
+        // Check if file exists, first launch won't have one.
         guard FileManager.default.fileExists(atPath: historyPath.path) else {
             return
         }

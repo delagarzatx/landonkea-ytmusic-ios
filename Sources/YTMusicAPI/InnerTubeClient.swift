@@ -15,7 +15,7 @@ class InnerTubeClient {
     /// NOT hardcoded here on purpose: even though this specific key is
     /// YouTube's well-known PUBLIC "InnerTube WEB client" identifier (the
     /// same constant Google embeds client-side in every youtube.com page,
-    /// and that yt-dlp/ytmusicapi/Metrolist/etc. all use identically — it's
+    /// and that yt-dlp/ytmusicapi/Metrolist/etc. all use identically, it's
     /// a client-type identifier, not a billed or account-linked credential),
     /// this project's policy is that anything key/token/credential-shaped
     /// gets pulled out of source into build-time config, no exceptions.
@@ -87,7 +87,7 @@ class InnerTubeClient {
     
     /// Create a new InnerTube client
     /// - Parameter session: URL session to use (for testing, you can pass a mock).
-    ///   Defaults to `NetworkCache.session` — a `URLSession` backed by a
+    ///   Defaults to `NetworkCache.session`, a `URLSession` backed by a
     ///   properly-sized disk+memory cache instead of the tiny 10MB default
     ///   `URLSession.shared` normally uses. See NetworkCache.swift for what
     ///   this does (and, importantly, doesn't) cache and why.
@@ -104,7 +104,7 @@ class InnerTubeClient {
     ///
     /// - Parameters:
     ///   - query: The search text (e.g. "Bohemian Rhapsody")
-    ///   - filter: Optional filter — "songs", "videos", "albums", or nil for all results
+    ///   - filter: Optional filter, "songs", "videos", "albums", or nil for all results
     /// - Returns: Array of search results matching the filter
     ///
     /// FILTERS:
@@ -123,7 +123,7 @@ class InnerTubeClient {
         case "artists":
             params = "EgIIAQ=="      // Artists filter
         default:
-            params = nil              // No filter — show all results
+            params = nil              // No filter, show all results
         }
         
         // Build the request body with WEB_REMIX client
@@ -315,7 +315,7 @@ class InnerTubeClient {
             let sectionTitle = section.title.lowercased()
             
             if sectionTitle.contains("top") || sectionTitle.contains("popular") {
-                // Top songs section — convert BrowseItems to SearchResults
+                // Top songs section, convert BrowseItems to SearchResults
                 for item in section.items {
                     topSongs.append(SearchResult(
                         id: item.id,
@@ -523,7 +523,7 @@ class InnerTubeClient {
     
     /// Make a POST request to an InnerTube endpoint.
     ///
-    /// This is a GENERIC function — `<T: Decodable>` means it can return
+    /// This is a GENERIC function, `<T: Decodable>` means it can return
     /// any type that conforms to Decodable (our Codable models).
     /// The caller specifies what type they expect, and Swift decodes the
     /// JSON response into that type.
@@ -620,12 +620,12 @@ class InnerTubeClient {
     ///
     /// WHY:
     /// YouTube's servers occasionally return 503 (Service Unavailable) or
-    /// timeout errors. These are usually temporary — retrying after a short
+    /// timeout errors. These are usually temporary, retrying after a short
     /// wait usually succeeds. Client errors (400 Bad Request, 403 Forbidden)
     /// won't fix themselves, so we don't retry those.
     ///
     /// WHAT IS `block`?
-    /// `block: () async throws -> T` is a "closure" parameter — a closure is
+    /// `block: () async throws -> T` is a "closure" parameter, a closure is
     /// a chunk of code (here, "the actual network request") that gets passed
     /// around and called later, just like a value. Instead of writing the
     /// retry loop separately for every kind of request, callers hand this
@@ -639,7 +639,7 @@ class InnerTubeClient {
             do {
                 return try await block()
             } catch let error as InnerTubeError {
-                // Don't retry client errors (400-499) — they won't fix themselves
+                // Don't retry client errors (400-499), they won't fix themselves
                 if case .httpError(let statusCode) = error, (400...499).contains(statusCode) {
                     throw error
                 }
@@ -661,7 +661,7 @@ class InnerTubeClient {
             }
         }
         
-        // All attempts failed — throw the last error
+        // All attempts failed, throw the last error
         throw lastError ?? InnerTubeError.invalidResponse
     }
     
@@ -778,7 +778,7 @@ class InnerTubeClient {
                 .max(by: { $0.bitrate < $1.bitrate })!
             
         default:
-            // "auto" or any unknown value — pick highest bitrate
+            // "auto" or any unknown value, pick highest bitrate
             selectedAudio = audioStreams
                 .max(by: { $0.bitrate < $1.bitrate })!
         }

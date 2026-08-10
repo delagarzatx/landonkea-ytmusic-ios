@@ -1,7 +1,7 @@
 import SwiftUI
 // NOTE: This file previously also imported UniformTypeIdentifiers, but nothing
 // here actually uses it (no UTType values appear anywhere below), so it was
-// removed. An unused import doesn't crash anything, but it's dead code —
+// removed. An unused import doesn't crash anything, but it's dead code,
 // it makes a reader wonder "wait, where is this used?" for no reason.
 
 /// Settings screen where users can customize app behavior.
@@ -27,7 +27,7 @@ import SwiftUI
 ///   that a control like `Toggle` can both read from and write to, so the
 ///   toggle changes the *real* underlying value, not a copy of it.
 /// - **closure**: a self-contained block of code (like `{ showClearCacheAlert = true }`)
-///   that can be passed around and executed later — used heavily as button
+///   that can be passed around and executed later, used heavily as button
 ///   actions and callback handlers throughout SwiftUI.
 struct SettingsView: View {
 
@@ -50,7 +50,7 @@ struct SettingsView: View {
     @AppStorage("streamQuality") private var streamQuality = "high"
 
     /// Audio stream quality preference for downloads.
-    /// Separate from stream quality — lets users save storage by downloading lower quality.
+    /// Separate from stream quality, lets users save storage by downloading lower quality.
     @AppStorage("downloadQuality") private var downloadQuality = "high"
 
     /// Whether crossfade between songs is enabled.
@@ -69,7 +69,7 @@ struct SettingsView: View {
     @AppStorage("fontSizeScale") private var fontSizeScale = 1
 
     /// The offline manager for storage info.
-    /// Declared with `@EnvironmentObject` (see glossary above) — some parent
+    /// Declared with `@EnvironmentObject` (see glossary above), some parent
     /// view further up the hierarchy supplied this with `.environmentObject(...)`.
     @EnvironmentObject var offlineManager: OfflineManager
 
@@ -78,7 +78,7 @@ struct SettingsView: View {
 
     /// Whether to show the clear cache confirmation alert.
     /// A `@State` property: local, private, in-memory-only state that is NOT
-    /// saved anywhere — it resets to `false` every time this view is recreated.
+    /// saved anywhere, it resets to `false` every time this view is recreated.
     @State private var showClearCacheAlert = false
 
     // MARK: - Body
@@ -88,7 +88,7 @@ struct SettingsView: View {
     // directly inline inside one giant `body`, which made the file hard to
     // scan. Splitting each section into its own small, named computed
     // property makes every piece easy to find, read, and reason about on its
-    // own — and each one's job is described by its name alone.
+    // own, and each one's job is described by its name alone.
     var body: some View {
         // NavigationView provides the nav bar with title
         NavigationView {
@@ -106,7 +106,7 @@ struct SettingsView: View {
             // When autoAppearance is on → use nil (follow system).
             // When autoAppearance is off → use darkMode toggle value.
             // nil is Swift's way of representing "no value here." An optional
-            // color scheme of `nil` specifically means "don't override —
+            // color scheme of `nil` specifically means "don't override,
             // inherit whatever the system/device is set to" (auto mode).
             .preferredColorScheme(autoAppearance ? nil : (darkMode ? .dark : .light))
         }
@@ -117,13 +117,13 @@ struct SettingsView: View {
     /// Appearance section: dark mode / auto / font size controls.
     private var appearanceSection: some View {
         Section {
-            // Auto-appearance — follows the system light/dark setting
+            // Auto-appearance, follows the system light/dark setting
             // When enabled, overrides the manual dark mode toggle
             Toggle(isOn: $autoAppearance) {
                 Label("Auto (Follow System)", systemImage: "iphone")
             }
 
-            // Manual dark mode toggle — only adjustable when auto is off
+            // Manual dark mode toggle, only adjustable when auto is off
             // Dimmed appearance when auto is enabled to indicate it's disabled
             Toggle(isOn: $darkMode) {
                 Label("Dark Mode", systemImage: "moon.fill")
@@ -131,7 +131,7 @@ struct SettingsView: View {
             .opacity(autoAppearance ? 0.5 : 1.0)
             .disabled(autoAppearance)
 
-            // Font size picker — adjusts text size across the app
+            // Font size picker, adjusts text size across the app
             // 0 = small, 1 = medium (default), 2 = large.
             // Picker is a dropdown/segmented control for choosing among fixed
             // options; `.tag(0)` marks each Text as the value that gets
@@ -161,14 +161,14 @@ struct SettingsView: View {
                 Text("High (256kbps)").tag("high")
             }
 
-            // Crossfade toggle — smooth transitions between songs
+            // Crossfade toggle, smooth transitions between songs
             Toggle(isOn: $crossfadeEnabled) {
                 Label("Crossfade", systemImage: "shuffle")
             }
 
-            // Crossfade duration picker — only shown when crossfade is enabled.
+            // Crossfade duration picker, only shown when crossfade is enabled.
             // This `if` inside a SwiftUI view builder conditionally includes
-            // or excludes a whole chunk of UI, based on plain Swift state —
+            // or excludes a whole chunk of UI, based on plain Swift state,
             // that's what "declarative UI" means: describe what should show
             // *given* the current state, and let SwiftUI handle animating
             // the row in/out.
@@ -191,7 +191,7 @@ struct SettingsView: View {
     /// Downloads section: download quality + Wi-Fi-only toggle.
     private var downloadsSection: some View {
         Section {
-            // Download quality picker — controls audio bitrate for downloads
+            // Download quality picker, controls audio bitrate for downloads
             Picker("Download Quality", selection: $downloadQuality) {
                 Text("Low (72kbps)").tag("low")
                 Text("Medium (128kbps)").tag("medium")
@@ -228,7 +228,7 @@ struct SettingsView: View {
                 Label("Clear All Downloads", systemImage: "trash")
                     .foregroundColor(.red)
             }
-            // .disabled(true) grays the button out and blocks taps — here it's
+            // .disabled(true) grays the button out and blocks taps, here it's
             // disabled whenever there's nothing to clear.
             .disabled(offlineManager.downloads.isEmpty)
         } header: {
@@ -281,7 +281,7 @@ struct SettingsView: View {
 
     /// The "Top Artists" mini-list shown inside `statsSection`.
     /// Pulled into its own method (rather than being written inline) because
-    /// it has its own internal loop and layout — separating it keeps
+    /// it has its own internal loop and layout, separating it keeps
     /// `statsSection` readable as a flat list of rows.
     /// - Parameter topArtists: array of (artist, play count) pairs, already
     ///   limited to the top 3 by `StatsManager`.
@@ -312,7 +312,7 @@ struct SettingsView: View {
     /// About section: version, developer, and external links.
     private var aboutSection: some View {
         Section {
-            // Static info rows — just display text, no action
+            // Static info rows, just display text, no action
             HStack {
                 Text("Version")
                 Spacer() // Pushes version number to the right
@@ -329,7 +329,7 @@ struct SettingsView: View {
 
             // Link = tappable row that opens a URL in Safari.
             // We use a force-unwrap `URL(string:)!` here because these are
-            // hardcoded string literals written directly in this file — the
+            // hardcoded string literals written directly in this file, the
             // compiler guarantees the exact same text every time the app
             // runs, so this can never actually be nil. This is different
             // from force-unwrapping a URL built from data that came back
