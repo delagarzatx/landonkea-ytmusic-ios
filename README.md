@@ -181,15 +181,6 @@ The full raw `xcodebuild` log is saved alongside it at
 `test-results/raw.log`. Both are gitignored, generated locally and, in CI,
 uploaded as a workflow artifact (see `.github/workflows/ci.yml`).
 
-## What's Next
-
-- [ ] Playlist support
-- [ ] Lyrics display
-- [ ] Offline caching
-- [ ] Queue management
-- [ ] Dark mode support
-- [ ] Widget for home screen
-
 ## Disclaimer
 
 This project is not affiliated with YouTube or Google. It uses an unofficial API that may stop working at any time.
