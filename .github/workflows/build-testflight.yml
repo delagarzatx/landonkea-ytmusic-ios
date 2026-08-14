@@ -1,0 +1,61 @@
+name: Build (TestFlight channel)
+
+# Builds the YTMusicApp-TestFlight scheme (Release-optimized config) on
+# pre-release tags like v1.2.0-beta.1 or v1.2.0-rc.1. Named for where the
+# output would eventually go once it's manually signed and uploaded, this
+# workflow does NOT talk to App Store Connect and does NOT sign anything,
+# there's no Apple Developer account/signing cert wired into this repo's
+# CI. It produces an unsigned simulator build artifact standing in for
+# what a real TestFlight build would be. See BUILD_LOG.md's "CI build
+# channels" section for the full picture.
+
+on:
+  push:
+    tags:
+      - "v*.*.*-*"
+
+jobs:
+  build-testflight:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install xcodegen
+        run: brew install xcodegen
+
+      - name: Supply Secrets.xcconfig
+        run: |
+          cp Config/Secrets.example.xcconfig Config/Secrets.xcconfig
+          sed -i '' 's/YOUR_INNERTUBE_API_KEY_HERE/AIzaSyC9XL3ZjWddXya6X74dJoCTL-WEYFDNX30/' Config/Secrets.xcconfig
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Build YTMusicApp-TestFlight
+        run: |
+          xcodebuild \
+            -project YTMusicApp.xcodeproj \
+            -scheme YTMusicApp-TestFlight \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -configuration TestFlight \
+            build
+
+      - name: Locate and zip the built app
+        run: |
+          APP_PATH=$(find ~/Library/Developer/Xcode/DerivedData -type d -name "YTMusicApp.app" -path "*TestFlight-iphonesimulator*" | head -1)
+          if [ -z "$APP_PATH" ]; then
+            echo "Could not find YTMusicApp.app under DerivedData" >&2
+            exit 1
+          fi
+          mkdir -p build-output
+          ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "build-output/YTMusicApp-${{ github.ref_name }}.zip"
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: YTMusicApp-testflight-${{ github.ref_name }}
+          path: build-output/YTMusicApp-${{ github.ref_name }}.zip
+          if-no-files-found: error

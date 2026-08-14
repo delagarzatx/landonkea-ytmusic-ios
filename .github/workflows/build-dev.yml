@@ -1,0 +1,63 @@
+name: Build (Dev)
+
+# Builds the YTMusicApp-Dev scheme (Debug config) on every push to the dev
+# branch. This is a fast "does it still build" signal separate from the
+# main CI workflow's full test run, see BUILD_LOG.md's "CI build channels"
+# section for how this fits with build-testflight.yml and build-release.yml.
+
+on:
+  push:
+    branches: [dev]
+
+jobs:
+  build-dev:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install xcodegen
+        run: brew install xcodegen
+
+      - name: Supply Secrets.xcconfig
+        # Config/Secrets.xcconfig is gitignored, every fresh checkout needs
+        # it or the build fails on a missing INNERTUBE_API_KEY. The value
+        # here is the public InnerTube WEB_REMIX client key documented in
+        # Config/Secrets.example.xcconfig, not a private credential.
+        run: |
+          cp Config/Secrets.example.xcconfig Config/Secrets.xcconfig
+          sed -i '' 's/YOUR_INNERTUBE_API_KEY_HERE/AIzaSyC9XL3ZjWddXya6X74dJoCTL-WEYFDNX30/' Config/Secrets.xcconfig
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Build YTMusicApp-Dev
+        # Unsigned simulator build, no Apple Developer account is wired
+        # into this repo's CI. CODE_SIGN_STYLE: Automatic with no team
+        # works fine for the simulator, which is all this needs to verify.
+        run: |
+          xcodebuild \
+            -project YTMusicApp.xcodeproj \
+            -scheme YTMusicApp-Dev \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -configuration Debug \
+            build
+
+      - name: Locate and zip the built app
+        run: |
+          APP_PATH=$(find ~/Library/Developer/Xcode/DerivedData -type d -name "YTMusicApp.app" -path "*Debug-iphonesimulator*" | head -1)
+          if [ -z "$APP_PATH" ]; then
+            echo "Could not find YTMusicApp.app under DerivedData" >&2
+            exit 1
+          fi
+          mkdir -p build-output
+          ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" build-output/YTMusicApp-dev.zip
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: YTMusicApp-dev-${{ github.sha }}
+          path: build-output/YTMusicApp-dev.zip
+          if-no-files-found: error

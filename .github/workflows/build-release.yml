@@ -1,0 +1,61 @@
+name: Build (Release channel)
+
+# Builds the YTMusicApp-Release scheme (Release config) on stable version
+# tags like v1.2.0. The tag trigger below (v*.*.*) also matches pre-release
+# tags like v1.2.0-beta.1, so the job guards itself with an explicit check
+# for a hyphen in the tag name and skips if one's present, that shape of
+# tag belongs to build-testflight.yml instead. This is an unsigned
+# simulator build, no Apple Developer account/signing cert is wired into
+# this repo's CI, see BUILD_LOG.md's "CI build channels" section.
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+jobs:
+  build-release:
+    runs-on: macos-latest
+    if: ${{ !contains(github.ref_name, '-') }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install xcodegen
+        run: brew install xcodegen
+
+      - name: Supply Secrets.xcconfig
+        run: |
+          cp Config/Secrets.example.xcconfig Config/Secrets.xcconfig
+          sed -i '' 's/YOUR_INNERTUBE_API_KEY_HERE/AIzaSyC9XL3ZjWddXya6X74dJoCTL-WEYFDNX30/' Config/Secrets.xcconfig
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Build YTMusicApp-Release
+        run: |
+          xcodebuild \
+            -project YTMusicApp.xcodeproj \
+            -scheme YTMusicApp-Release \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -configuration Release \
+            build
+
+      - name: Locate and zip the built app
+        run: |
+          APP_PATH=$(find ~/Library/Developer/Xcode/DerivedData -type d -name "YTMusicApp.app" -path "*Release-iphonesimulator*" | head -1)
+          if [ -z "$APP_PATH" ]; then
+            echo "Could not find YTMusicApp.app under DerivedData" >&2
+            exit 1
+          fi
+          mkdir -p build-output
+          ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "build-output/YTMusicApp-${{ github.ref_name }}.zip"
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: YTMusicApp-release-${{ github.ref_name }}
+          path: build-output/YTMusicApp-${{ github.ref_name }}.zip
+          if-no-files-found: error
