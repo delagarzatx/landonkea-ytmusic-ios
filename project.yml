@@ -16,14 +16,34 @@ options:
   # Create folders that contain no files so the navigator stays tidy.
   generateEmptyDirectories: true
 
+# "configs:" lists the build configurations Xcode generates, each mapped to
+# the underlying optimization/debug-info profile ("debug" or "release")
+# it should inherit Apple's default settings from. Three configs instead of
+# the usual two because this project's CI ties one to each build channel
+# (see .github/workflows/build-*.yml and BUILD_LOG.md's "CI build channels"
+# section):
+#   - Debug       -> local development and the dev-branch CI build
+#   - TestFlight  -> pre-release tags (v*.*.*-*), a Release-optimized build
+#                    kept separate from "Release" so it can diverge later
+#                    (e.g. a beta feature flag or different bundle suffix)
+#                    without touching the stable config
+#   - Release     -> stable version tags, what would eventually ship
+configs:
+  Debug: debug
+  TestFlight: release
+  Release: release
+
 # "configFiles:" applies an xcconfig at the PROJECT level for each build
 # configuration, before any target-level settings. We use this to inject
 # secrets (API keys, etc.) as build settings instead of hardcoding them in
 # source. Config/Secrets.xcconfig is gitignored — copy
 # Config/Secrets.example.xcconfig to Config/Secrets.xcconfig and fill in
 # real values before building. See that file for what each setting means.
+# All three configs point at the same file because every build channel
+# needs the same InnerTube key, there's no per-channel secret today.
 configFiles:
   Debug: Config/Secrets.xcconfig
+  TestFlight: Config/Secrets.xcconfig
   Release: Config/Secrets.xcconfig
 
 # "targets:" defines what gets built.
@@ -207,6 +227,16 @@ targets:
         DERIVE_MACCATALYST_PRODUCT_BUNDLE_IDENTIFIER: NO
 
 # "schemes:" defines the build/run scheme used by Xcode's toolbar.
+#
+# YTMusicApp is the original day-to-day scheme (Cmd+R in Xcode, and the one
+# scripts/run_tests.sh and .github/workflows/ci.yml already build against),
+# left untouched so nothing that already depends on it breaks.
+#
+# The three YTMusicApp-* schemes below exist for CI's build channels. Each
+# just pins every action to one of the three configs above, so
+# "xcodebuild archive -scheme YTMusicApp-Release" always means the Release
+# config with no extra flags needed to get that right. See BUILD_LOG.md for
+# why three channels and how the GitHub Actions workflows use them.
 schemes:
   YTMusicApp:
     build:
@@ -219,3 +249,38 @@ schemes:
       config: Debug
       targets:
         - YTMusicAppTests
+
+  # Dev channel: plain debug build, matches local development. CI builds
+  # this on every push to the dev branch (.github/workflows/build-dev.yml).
+  YTMusicApp-Dev:
+    build:
+      targets:
+        YTMusicApp: all
+    run:
+      config: Debug
+    archive:
+      config: Debug
+
+  # TestFlight-shaped channel: a Release-optimized build CI produces on
+  # pre-release tags (v1.2.0-beta.1, v1.2.0-rc.1, ...). Named for where the
+  # output is headed once it's manually signed and uploaded, not because
+  # this repo talks to App Store Connect (it can't, there's no Apple
+  # Developer account/signing cert wired into CI).
+  YTMusicApp-TestFlight:
+    build:
+      targets:
+        YTMusicApp: all
+    run:
+      config: TestFlight
+    archive:
+      config: TestFlight
+
+  # Release channel: CI produces this on stable version tags (v1.2.0).
+  YTMusicApp-Release:
+    build:
+      targets:
+        YTMusicApp: all
+    run:
+      config: Release
+    archive:
+      config: Release
