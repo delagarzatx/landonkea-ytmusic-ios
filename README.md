@@ -20,16 +20,34 @@ A free, open-source YouTube Music client for iPhone, iPad, and Mac.
 
 ## Setup
 
-1. Open Xcode
-2. File → New → Project
-3. Choose "iOS" → "App"
-4. Product Name: `YTMusic`
-5. Organization Identifier: `com.landonkea`
-6. Interface: SwiftUI
-7. Language: Swift
-8. Save the project in this folder
-9. In Xcode, go to File → Add Package Dependencies
-10. Add this local package (the folder you're in)
+The Xcode project isn't checked into this repo. It's generated from
+`project.yml` with [XcodeGen](https://github.com/yonaskolb/XcodeGen), so
+`.xcodeproj` stays gitignored and regenerates on demand instead of drifting
+out of sync with the source tree.
+
+1. Install XcodeGen: `brew install xcodegen`
+2. Copy the secrets template and fill in the InnerTube API key (the example
+   file documents where to get it, and the app crashes on launch with a
+   clear error message if you skip this step):
+   ```bash
+   cp Config/Secrets.example.xcconfig Config/Secrets.xcconfig
+   ```
+3. Generate the Xcode project:
+   ```bash
+   xcodegen generate
+   ```
+4. Open `YTMusicApp.xcodeproj` in Xcode and run the `YTMusicApp` scheme, or
+   build from the command line:
+   ```bash
+   xcodebuild -project YTMusicApp.xcodeproj -scheme YTMusicApp \
+     -destination 'platform=iOS Simulator,name=iPhone 17' -configuration Debug build
+   ```
+
+Whenever you add, remove, or rename a source file, or change `project.yml`,
+re-run `xcodegen generate`. See `XCODE_SETUP.md` for the full command
+reference (running tests, installing on a simulator, Mac Catalyst builds)
+and `BUILD_LOG.md` for how this setup came to be and what the CI build
+channels do.
 
 ## How It Works
 
