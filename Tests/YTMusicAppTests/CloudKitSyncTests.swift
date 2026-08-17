@@ -255,6 +255,36 @@ final class CloudKitSyncTests: XCTestCase {
     }
 
     @MainActor
+    func testSyncNowDoesNotReapplyIdenticalPlaylistsRegardlessOfMergeOrder() async {
+        let store = InMemoryCloudRecordStore()
+        let manager = CloudKitSyncManager(store: store, zoneID: testZoneID)
+
+        // Local already has the exact same playlists as remote -- an
+        // already-fully-synced state where nothing actually changed.
+        let playlistA = makePlaylist(id: "already-synced-a", name: "A", modifiedAt: Date(timeIntervalSince1970: 500))
+        let playlistB = makePlaylist(id: "already-synced-b", name: "B", modifiedAt: Date(timeIntervalSince1970: 500))
+        store.seed(CloudKitRecordCoding.record(from: playlistA, zoneID: testZoneID))
+        store.seed(CloudKitRecordCoding.record(from: playlistB, zoneID: testZoneID))
+
+        var appliedPlaylists: [Playlist]?
+        manager.getLocalPlaylists = { [playlistA, playlistB] }
+        manager.applyMergedPlaylists = { appliedPlaylists = $0 }
+        manager.getLocalLikedEntries = { [] }
+        manager.applyMergedLikedEntries = { _ in }
+
+        manager.syncNow()
+        await waitForSyncToSettle(manager)
+
+        // PlaylistConflictResolver.merge() returns Array(byId.values), a
+        // Dictionary's iteration order, which isn't guaranteed to match
+        // `local`'s original array order even when nothing actually
+        // changed. syncPlaylists() must compare order-independently so
+        // an already-synced, unchanged playlist set doesn't trigger a
+        // spurious local re-write + change notification on every sync.
+        XCTAssertNil(appliedPlaylists)
+    }
+
+    @MainActor
     func testSyncNowMergesLikedSongs() async {
         let store = InMemoryCloudRecordStore()
         let manager = CloudKitSyncManager(store: store, zoneID: testZoneID)

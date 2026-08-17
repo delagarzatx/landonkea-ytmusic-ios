@@ -30,10 +30,10 @@ import AVFoundation
 @MainActor
 final class EqualizerEngineTests: XCTestCase {
 
-    /// Synthesize a tiny (0.2s) mono WAV file on disk so the test has a
-    /// real, playable local audio file, mirroring how AudioPlayer feeds
-    /// EqualizerEngine a downloaded song's file URL.
-    private func makeTestAudioFile() throws -> URL {
+    /// Synthesize a tiny (0.2s by default) mono WAV file on disk so the
+    /// test has a real, playable local audio file, mirroring how
+    /// AudioPlayer feeds EqualizerEngine a downloaded song's file URL.
+    private func makeTestAudioFile(seconds: Double = 0.1) throws -> URL {
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString)
             .appendingPathExtension("wav")
@@ -41,7 +41,7 @@ final class EqualizerEngineTests: XCTestCase {
         let format = AVAudioFormat(standardFormatWithSampleRate: 44100, channels: 1)!
         let file = try AVAudioFile(forWriting: url, settings: format.settings)
 
-        let frameCount: AVAudioFrameCount = 4410 // 0.1s at 44.1kHz
+        let frameCount = AVAudioFrameCount(seconds * 44100)
         let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frameCount)!
         buffer.frameLength = frameCount
         // Fill with a quiet sine wave so it's a valid, non-silent buffer.
@@ -121,6 +121,55 @@ final class EqualizerEngineTests: XCTestCase {
             wait(for: [expectation], timeout: 5)
             XCTAssertGreaterThan(reportedDuration, 0)
         }
+
+        engine.stop()
+    }
+
+    /// Regression test: seeking used to report elapsed time SINCE the
+    /// seek instead of the actual position in the file. Root cause:
+    /// AVAudioPlayerNode.playerTime(forNodeTime:) resets to 0 on every
+    /// stop()/play() cycle, and seek() does exactly that, so a later
+    /// position-polling tick would report ~elapsed-since-seek (starting
+    /// near 0 again) rather than seek-target + elapsed.
+    func testSeekReportsAbsolutePositionNotTimeSinceSeek() throws {
+        let url = try makeTestAudioFile(seconds: 3.0)
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        let engine = EqualizerEngine()
+
+        let playExpectation = expectation(description: "playFile completion")
+        engine.playFile(
+            url: url,
+            rate: 1.0,
+            volume: 0.0,
+            gains: Array(repeating: 0.0, count: 10),
+            frequencies: EqualizerManager.bandFrequencies,
+            completion: { _ in playExpectation.fulfill() }
+        )
+        wait(for: [playExpectation], timeout: 5)
+
+        var latestReportedTime: Double = -1
+        engine.onTimeUpdate = { time in
+            latestReportedTime = time
+        }
+
+        // Seek well past where a reset-relative clock would still be
+        // after the wait below (0.6s), so the two hypotheses (absolute
+        // position vs. time-since-seek) land in clearly separate ranges.
+        engine.seek(toSeconds: 2.0)
+        XCTAssertEqual(latestReportedTime, 2.0, accuracy: 0.01)
+
+        // Let the 0.25s position-polling timer tick at least once past
+        // the seek before checking what it reports.
+        let tickExpectation = expectation(description: "wait for a timer tick past the seek")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+            tickExpectation.fulfill()
+        }
+        wait(for: [tickExpectation], timeout: 2)
+
+        // Correct (absolute position): ~2.0-2.7s. Buggy (time-since-seek,
+        // clock reset by the seek's stop()/play()): ~0.0-0.6s.
+        XCTAssertGreaterThan(latestReportedTime, 1.9)
 
         engine.stop()
     }

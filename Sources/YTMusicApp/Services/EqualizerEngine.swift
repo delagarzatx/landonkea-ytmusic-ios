@@ -97,6 +97,15 @@ class EqualizerEngine {
     /// Used by the time-pitch unit and for seek calculations.
     private var fileDuration: Double = 0
 
+    /// Where in the file the CURRENT scheduled segment starts, in seconds.
+    /// playerNode.playerTime(forNodeTime:) (see `currentTime` below) resets
+    /// to 0 on every stop()/play() cycle, it measures elapsed time since
+    /// the node was last started, not a position within the file. Every
+    /// seek stops and restarts the node at a new starting frame, so
+    /// without this offset, currentTime would report time-since-the-last-
+    /// seek instead of the actual position in the song.
+    private var segmentStartSeconds: Double = 0
+
     // MARK: - Initialization
 
     /// Attach all three custom nodes to the engine.
@@ -189,6 +198,7 @@ class EqualizerEngine {
         engine.mainMixerNode.outputVolume = Float(volume)
         
         // Schedule the entire file (from frame 0 to the end) for playback
+        segmentStartSeconds = 0
         scheduleSegment(startingFrame: 0)
         
         // Prepare the engine (allocates resources) and start it running
@@ -251,6 +261,10 @@ class EqualizerEngine {
         
         // Convert the seconds target to a sample frame index
         let startingFrame = AVAudioFramePosition(clamped * sampleRate)
+        // Remember where this segment starts so currentTime (below) can
+        // add elapsed time on top of it instead of reporting time-since-
+        // this-seek.
+        segmentStartSeconds = clamped
         // Re-schedule the file from that frame to the end
         scheduleSegment(startingFrame: startingFrame)
         
@@ -419,19 +433,27 @@ class EqualizerEngine {
     /// The current playback position in seconds.
     ///
     /// HOW IT'S CALCULATED:
-    /// AVAudioPlayerNode tracks how many sample frames it has rendered.
+    /// AVAudioPlayerNode tracks how many sample frames it has rendered
+    /// SINCE THE NODE WAS LAST STARTED (playerTime resets to 0 on every
+    /// stop()/play() cycle, it does not track a position within the file).
     /// lastRenderTime = the node's internal clock at the last render.
-    /// playerTime(forNodeTime:) converts that clock value into sample frames.
-    /// Dividing frames by the sample rate gives seconds.
+    /// playerTime(forNodeTime:) converts that clock value into sample
+    /// frames elapsed since that start. Dividing frames by the sample rate
+    /// gives elapsed seconds, which segmentStartSeconds (the file position
+    /// the current segment was scheduled from, 0 initially, wherever the
+    /// last seek landed after that) turns into an absolute position.
     private var currentTime: Double {
         // Get the node's latest render time
         guard let nodeTime = playerNode.lastRenderTime,
               // Convert it to a player time (sample frames + sample rate)
               let playerTime = playerNode.playerTime(forNodeTime: nodeTime) else {
-            // If either conversion fails, report 0
-            return 0
+            // If either conversion fails, report the last known segment
+            // start rather than 0, so a fresh seek's position isn't lost
+            // just because a render time isn't available yet.
+            return segmentStartSeconds
         }
-        // Convert sample frames to seconds
-        return Double(playerTime.sampleTime) / playerTime.sampleRate
+        // Convert sample frames to seconds, then offset by where this
+        // segment actually starts in the file.
+        return segmentStartSeconds + Double(playerTime.sampleTime) / playerTime.sampleRate
     }
 }

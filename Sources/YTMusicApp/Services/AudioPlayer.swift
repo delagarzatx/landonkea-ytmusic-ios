@@ -627,6 +627,19 @@ class AudioPlayer: ObservableObject {
                 // Guard: if self was deallocated, stop
                 guard let self = self else { return }
 
+                // Guard: during a crossfade, the OLD player's observer is
+                // still alive (deliberately, until the fade animation
+                // finishes and removes it) while `self.player`/`duration`/
+                // `currentSong` have already been reassigned to the NEW
+                // song. Without this check, the old player's own stale
+                // ticks would overwrite currentTime/duration with the old
+                // song's position, and could even re-trigger the "song
+                // ended" branch below against the new song's (possibly
+                // shorter) duration, firing handleSongEnded() a second
+                // time mid-crossfade. Only the player currently assigned
+                // to self.player is allowed to update shared state.
+                guard player === self.player else { return }
+
                 // Update the current playback position
                 self.currentTime = time.seconds
 

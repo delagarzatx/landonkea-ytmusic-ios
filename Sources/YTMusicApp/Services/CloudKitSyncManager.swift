@@ -395,7 +395,16 @@ final class CloudKitSyncManager {
             let remote = remoteRecords.compactMap { CloudKitRecordCoding.playlist(from: $0) }
             let merged = PlaylistConflictResolver.merge(local: local, remote: remote)
 
-            if merged != local {
+            // merge() returns Array(byId.values): Dictionary iteration
+            // order is unspecified, so `merged` can land in a different
+            // order than `local` even when nothing actually changed.
+            // Comparing by id-sorted copies instead of the raw arrays
+            // avoids a spurious "changed" result (and the unnecessary
+            // disk write + change notification that follows) on every
+            // sync pass. Playlist isn't Hashable (it embeds [NowPlaying]),
+            // so this sorts rather than mirroring syncLikedSongs' Set
+            // comparison below.
+            if merged.sorted(by: { $0.id < $1.id }) != local.sorted(by: { $0.id < $1.id }) {
                 applyMergedPlaylists(merged)
             }
 
