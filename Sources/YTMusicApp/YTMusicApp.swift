@@ -57,13 +57,6 @@ struct YTMusicApp: App {
     /// The stats manager, tracks listening statistics.
     @StateObject private var statsManager = StatsManager()
 
-    /// CloudKit sync for playlists + liked songs only (NOT listening
-    /// stats, see CloudKitSyncManager.swift for the full scope/design
-    /// writeup). Not `@StateObject`/observed by views, nothing in the UI
-    /// reads its state directly, it just quietly keeps PlaylistManager and
-    /// LikedSongsManager in sync with iCloud in the background.
-    private let cloudKitSyncManager = CloudKitSyncManager()
-
     /// Set up the shared managers for AudioPlayer to access.
     init() {
         PlayCountManager.shared = playCountManager
@@ -74,30 +67,11 @@ struct YTMusicApp: App {
         // lock screen / Control Center "like"/"dislike" remote commands.
         LikedSongsManager.shared = likedSongs
 
-        // Wire CloudKitSyncManager to read/apply PlaylistManager's and
-        // LikedSongsManager's data without either manager needing to know
-        // anything about CloudKit directly (see CloudKitSyncManager.swift's
-        // header comment for the full rationale).
-        let syncManager = cloudKitSyncManager
-        let playlists = playlistManager
-        let liked = likedSongs
-        syncManager.getLocalPlaylists = { playlists.playlists }
-        syncManager.applyMergedPlaylists = { merged in playlists.applyMergedPlaylists(merged) }
-        syncManager.getLocalLikedEntries = { liked.currentLikedEntries() }
-        syncManager.applyMergedLikedEntries = { merged in liked.applyMergedLikedEntries(merged) }
-
-        // Trigger a sync whenever playlists or liked songs change locally,
-        // and once at launch to pull down anything from other devices.
-        // Both the manager and the notification handlers are @MainActor,
-        // hopping through Task {@MainActor in ...} keeps this correct
-        // regardless of which thread NotificationCenter delivers on.
-        NotificationCenter.default.addObserver(forName: .playlistsDidChange, object: nil, queue: nil) { _ in
-            Task { @MainActor in syncManager.syncNow() }
-        }
-        NotificationCenter.default.addObserver(forName: .likedSongsDidChange, object: nil, queue: nil) { _ in
-            Task { @MainActor in syncManager.syncNow() }
-        }
-        Task { @MainActor in syncManager.syncNow() }
+        // CloudKit sync disabled in the sideload build: creating the
+        // CKContainer at launch without the iCloud entitlement (which
+        // free Sideloadly signing cannot provision) kills the app at
+        // startup. The sync manager is never instantiated in this
+        // build; local playlists and liked songs are unaffected.
     }
     
     var body: some Scene {
