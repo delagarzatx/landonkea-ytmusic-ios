@@ -1,0 +1,55 @@
+workflows:
+  ios-unsigned-ipa:
+    name: iOS unsigned IPA (para Sideloadly)
+    max_build_duration: 60
+    environment:
+      ios_signing:
+        distribution_type: ad_hoc
+      vars:
+        XCODE_PROJECT: "YTMusicApp.xcodeproj"
+        XCODE_SCHEME: "YTMusicApp-Release"
+        # API key pública de InnerTube (la misma que usa el CI del repo;
+        # es el identificador público que YouTube incrusta en su web,
+        # no una credencial privada)
+        INNERTUBE_API_KEY: "AIzaSyC9XL3ZjWddXya6X74dJoCTL-WEYFDNX30"
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Instalar XcodeGen
+        script: |
+          brew install xcodegen
+      - name: Configurar Secrets.xcconfig
+        script: |
+          cp Config/Secrets.example.xcconfig Config/Secrets.xcconfig
+          sed -i '' "s/YOUR_INNERTUBE_API_KEY_HERE/$INNERTUBE_API_KEY/" Config/Secrets.xcconfig
+          grep -q "$INNERTUBE_API_KEY" Config/Secrets.xcconfig && echo "API key inyectada OK"
+      - name: Generar proyecto Xcode
+        script: |
+          xcodegen generate
+      - name: Compilar app sin firmar (iphoneos)
+        script: |
+          xcodebuild \
+            -project "$XCODE_PROJECT" \
+            -scheme "$XCODE_SCHEME" \
+            -sdk iphoneos \
+            -configuration Release \
+            -derivedDataPath build/derived \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            build
+      - name: Empaquetar IPA sin firmar
+        script: |
+          APP_PATH=$(find build/derived -type d -name "YTMusicApp.app" -path "*Release-iphoneos*" | head -1)
+          if [ -z "$APP_PATH" ]; then
+            echo "No se encontró YTMusicApp.app"
+            find build/derived -type d -name "*.app" | head -5
+            exit 1
+          fi
+          echo "App encontrada: $APP_PATH"
+          rm -rf build/ipa && mkdir -p build/ipa/Payload
+          cp -R "$APP_PATH" build/ipa/Payload/
+          cd build/ipa && zip -r -y ../YTMusicApp-unsigned.ipa Payload
+          cd ../..
+          ls -lh build/YTMusicApp-unsigned.ipa
+    artifacts:
+      - build/YTMusicApp-unsigned.ipa
