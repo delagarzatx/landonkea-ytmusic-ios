@@ -69,6 +69,17 @@ class AudioPlayer: ObservableObject {
     /// Current volume level (0.0 to 1.0).
     /// Controls the audio output volume. 0.0 = mute, 1.0 = maximum.
     @Published var volume: Double = 1.0
+
+    /// Spectrum levels (24 bands, 0.0 to 1.0) from the equalizer engine's
+    /// FFT tap, driving the Winamp-style visualizer. All zeros whenever
+    /// the AVPlayer path is playing (streamed songs), because AVPlayer
+    /// exposes no audio tap on iOS.
+    @Published var spectrumLevels: [Float] = Array(repeating: 0, count: 24)
+
+    /// Stereo balance for the Winamp BAL slider (-1.0 left, 0 center,
+    /// 1.0 right). Applies to the equalizer engine (local files); AVPlayer
+    /// has no pan control, so streamed songs ignore it.
+    @Published var balance: Double = 0.0
     
     /// The full queue of songs. The UI reads this for the queue screen.
     /// This is the source of truth, shuffle modifies this array.
@@ -122,10 +133,10 @@ class AudioPlayer: ObservableObject {
     /// AVPlayer handles buffering, decoding, and output to speakers.
     private var player: AVPlayer?
     
-    /// The equalizer playback engine (nil when the EQ isn't in use).
-    /// AVPlayer can't be equalized on iOS, so when the user enables the EQ
-    /// and plays a LOCAL (downloaded) song, we play it through this engine
-    /// instead, which routes audio through an AVAudioUnitEQ.
+    /// The equalizer playback engine (nil while a streamed song plays).
+    /// AVPlayer can't be equalized on iOS, so LOCAL (downloaded) songs
+    /// always play through this engine instead, which routes audio
+    /// through an AVAudioUnitEQ (31 bands) plus the spectrum tap.
     /// See EqualizerEngine.swift for the full explanation.
     private var eqEngine: EqualizerEngine?
     
@@ -408,57 +419,22 @@ class AudioPlayer: ObservableObject {
     /// Same as playSong() but accepts a local file URL instead of a streaming URL.
     private func playSongFromLocal(_ song: NowPlaying, localURL: URL) async {
         stopPlayer()
-        
-        // If the equalizer is enabled, play through the EQ engine so the
-        // 10-band equalizer actually processes the audio. AVPlayer cannot
-        // be equalized on iOS, so this is the only path where EQ works.
-        if let eq = EqualizerManager.shared, eq.isEnabled {
-            startEQPlayback(song, localURL: localURL)
-            return
-        }
-        
-        // Create AVPlayerItem from local file (no network needed)
-        let playerItem = AVPlayerItem(url: localURL)
-        let newPlayer = AVPlayer(playerItem: playerItem)
-        newPlayer.allowsExternalPlayback = true
-        
-        // Set up a time observer so currentTime/duration stay in sync and
-        // we detect when the song ends. This uses the SAME shared helper as
-        // playSong() below, so every playback path (streamed, local,
-        // crossfade) behaves identically, including posting the
-        // songDidFinishPlaying notification used for scrobbling/stats.
-        // (Previously this path built its own closure that skipped the
-        // notification, that inconsistency is now fixed.)
-        attachTimeObserver(to: newPlayer)
 
-        self.player = newPlayer
-        self.currentSong = song
-        self.sessionFinalized = false
-        self.state = .loading
-        // For local files, get duration from the player item if we don't know it
-        if duration == 0 {
-            self.duration = playerItem.duration.seconds.isNaN ? 0 : playerItem.duration.seconds
-        } else {
-            self.duration = Double(song.duration)
-        }
-        self.currentTime = 0
-
-        newPlayer.play()
-        // Apply the current playback speed. (Previously this path never set
-        // .rate, so locally-played songs silently ignored the playback
-        // speed setting, fixed to match the streaming path below.)
-        newPlayer.rate = Float(playbackRate)
-        self.state = .playing
-        updateNowPlayingInfo()
-        // Track this song in recently played history
-        addToRecentlyPlayed(song)
+        // Local files ALWAYS play through the equalizer engine (ronda 6,
+        // Winamp face): it is the only path with the 31-band EQ, the
+        // preamp, the balance control and the spectrum tap. When the user
+        // has the EQ switched off, startEQPlayback hands the engine flat
+        // gains, so the sound is unprocessed but the path is the same.
+        // AVPlayer cannot be equalized on iOS and exposes no audio tap.
+        startEQPlayback(song, localURL: localURL)
     }
     
     /// Play a local song through the equalizer engine.
     ///
-    /// This is the ONLY path where the 10-band equalizer actually processes
+    /// This is the ONLY path where the 31-band equalizer actually processes
     /// audio, because AVPlayer (the normal player) doesn't allow inserting
-    /// an EQ node. It's used when the EQ is enabled and the song is local.
+    /// an EQ node. Since ronda 6 it is THE path for every local file; with
+    /// the EQ switched off it simply runs with flat gains.
     ///
     /// The engine mirrors AudioPlayer's state (currentTime, duration, state)
     /// through callbacks so the rest of the app doesn't care which backend
@@ -507,11 +483,35 @@ class AudioPlayer: ObservableObject {
                 self?.eqEngine?.setGains(gains)
             }
         }
-        
-        // Pull the current EQ settings to hand to the engine
-        let gains = EqualizerManager.shared?.bandGains ?? Array(repeating: 0.0, count: 10)
+
+        // Same live wiring for the preamp slider.
+        EqualizerManager.shared?.onPreampChanged = { [weak self] preamp in
+            Task { @MainActor in
+                self?.eqEngine?.setPreamp(preamp)
+            }
+        }
+
+        // Forward spectrum levels to the published property the Winamp
+        // visualizer reads. The engine already throttles to ~15/second.
+        engine.onLevels = { [weak self] levels in
+            Task { @MainActor in
+                self?.spectrumLevels = levels
+            }
+        }
+
+        // Current balance (Winamp BAL slider) applies from the first frame
+        engine.setPan(balance)
+
+        // Pull the current EQ settings to hand to the engine. When the EQ
+        // is switched OFF the engine still plays the file (it is the only
+        // local path now) but with flat gains and no preamp, so the audio
+        // passes through unprocessed.
+        let eqManager = EqualizerManager.shared
+        let flatGains = Array(repeating: 0.0, count: EqualizerManager.bandFrequencies.count)
+        let gains = (eqManager?.isEnabled == true) ? (eqManager?.bandGains ?? flatGains) : flatGains
+        let preamp = (eqManager?.isEnabled == true) ? (eqManager?.preamp ?? 0.0) : 0.0
         let frequencies = EqualizerManager.bandFrequencies
-        
+
         // Start playback. The completion fires once the file is open and
         // playing, with the file's real duration in seconds.
         engine.playFile(
@@ -519,7 +519,8 @@ class AudioPlayer: ObservableObject {
             rate: playbackRate,
             volume: volume,
             gains: gains,
-            frequencies: frequencies
+            frequencies: frequencies,
+            preamp: preamp
         ) { [weak self] duration in
             Task { @MainActor in
                 guard let self = self else { return }
@@ -554,11 +555,12 @@ class AudioPlayer: ObservableObject {
             return
         }
         
-        // If the equalizer is enabled and this is a LOCAL file (a downloaded
-        // song, queue navigation often replays local URLs), use the EQ engine.
-        // This keeps the equalizer working when the queue advances to the
-        // next downloaded song.
-        if let eq = EqualizerManager.shared, eq.isEnabled, url.isFileURL {
+        // If this is a LOCAL file (a downloaded song, queue navigation
+        // often replays local URLs), use the equalizer engine, the same
+        // rule as playSongFromLocal: local files always go through the
+        // engine so the EQ, preamp, balance and visualizer keep working
+        // when the queue advances.
+        if url.isFileURL {
             startEQPlayback(song, localURL: url)
             return
         }
@@ -1098,6 +1100,14 @@ class AudioPlayer: ObservableObject {
         eqEngine?.setVolume(clamped)
         // Apply to the actual AVPlayer
         player?.volume = Float(clamped)
+    }
+
+    /// Set the stereo balance from the Winamp BAL slider (-1.0 to 1.0).
+    /// Only the equalizer engine can pan; AVPlayer ignores balance.
+    func setBalance(_ newBalance: Double) {
+        let clamped = min(max(newBalance, -1), 1)
+        balance = clamped
+        eqEngine?.setPan(clamped)
     }
     
     // MARK: - Queue Navigation

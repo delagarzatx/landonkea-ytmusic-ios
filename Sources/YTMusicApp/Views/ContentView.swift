@@ -76,6 +76,8 @@ struct ContentView: View {
                         Label("Settings", systemImage: "gearshape.fill")
                     }
             }
+            // Winamp LED green accent for the tab bar (ronda 6)
+            .tint(Color(red: 0.16, green: 0.96, blue: 0.26))
             // NOTE: iPad/Mac keyboard shortcuts for playback control are
             // implemented below via hidden Buttons + .keyboardShortcut
             // (search "Space = Play/Pause"). That's the one working
@@ -261,8 +263,8 @@ struct MiniPlayer: View {
             // Apply the drag gesture for swiping between songs
             .offset(x: dragOffset) // Visual feedback, slides with the finger
             .gesture(swipeGesture)
-            // White/light background for the mini player bar
-            .background(Color(.systemBackground))
+            // Dark Winamp panel background for the mini player bar
+            .background(Color(red: 0.09, green: 0.09, blue: 0.11))
             // Subtle shadow below the mini player for depth
             .shadow(color: .black.opacity(0.1), radius: 5, x: 0, y: -2)
         }
@@ -280,7 +282,7 @@ struct MiniPlayer: View {
         // number of points, something a plain `Rectangle` can't do alone.
         GeometryReader { geometry in
             Rectangle()
-                .fill(Color.blue)
+                .fill(Color(red: 0.16, green: 0.96, blue: 0.26))
                 // audioPlayer.progress is a Double from 0.0 (just started)
                 // to 1.0 (finished). Multiplying it by the full width gives
                 // us the width of just the "filled" portion of the bar.
@@ -320,11 +322,12 @@ struct MiniPlayer: View {
             // Song title and artist, stacked vertically
             VStack(alignment: .leading, spacing: 2) {
                 Text(song.title)
-                    .font(.subheadline)
+                    .font(.system(.subheadline, design: .monospaced))
                     .fontWeight(.medium)
+                    .foregroundColor(.white)
                     .lineLimit(1)
                 Text(song.artist)
-                    .font(.caption)
+                    .font(.system(.caption, design: .monospaced))
                     .foregroundColor(.secondary)
                     .lineLimit(1)
             }
@@ -338,6 +341,7 @@ struct MiniPlayer: View {
             }) {
                 Image(systemName: audioPlayer.state == .playing ? "pause.fill" : "play.fill")
                     .font(.title2)
+                    .foregroundColor(Color(red: 0.16, green: 0.96, blue: 0.26))
             }
             .buttonStyle(.plain)
         }

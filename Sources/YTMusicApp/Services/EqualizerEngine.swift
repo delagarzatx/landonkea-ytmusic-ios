@@ -1,4 +1,4 @@
-// EqualizerEngine.swift, Plays local audio files through a real 10-band
+// EqualizerEngine.swift, Plays local audio files through a real 31-band
 // equalizer using AVAudioEngine.
 //
 // WHY THIS EXISTS:
@@ -12,11 +12,12 @@
 //
 // AUDIO GRAPH:
 //   AVAudioPlayerNode  →  AVAudioUnitTimePitch (playback speed)  →
-//   AVAudioUnitEQ (10 bands)  →  mainMixerNode  →  output
+//   AVAudioUnitEQ (31 bands)  →  mainMixerNode  →  output
 //
 // All methods are marked @MainActor because the engine is driven from the
 // UI thread (timers, play/pause buttons, sliders).
 
+import Accelerate
 import AVFoundation
 
 // MARK: - Equalizer Engine
@@ -33,6 +34,11 @@ class EqualizerEngine {
     /// Called when the current file finishes playing naturally (not stopped).
     /// AudioPlayer uses this to advance to the next song in the queue.
     var onSongEnded: (() -> Void)?
+
+    /// Called ~15 times per second with 24 spectrum levels (0.0 to 1.0),
+    /// computed from a real FFT of the playing audio. AudioPlayer forwards
+    /// these to the Winamp-style visualizer in the player screen.
+    var onLevels: (([Float]) -> Void)?
     
     // MARK: - Private Properties
     
@@ -49,9 +55,10 @@ class EqualizerEngine {
     /// so we use this AVAudioUnit to get the same feature.
     private let timePitch = AVAudioUnitTimePitch()
     
-    /// The actual equalizer node with 10 frequency bands.
-    /// This is the node that makes the EQ real, it boosts/cuts frequencies.
-    private let eqNode = AVAudioUnitEQ(numberOfBands: 10)
+    /// The actual equalizer node with 31 frequency bands (ISO 1/3-octave,
+    /// like a professional graphic EQ). This is the node that makes the
+    /// EQ real, it boosts/cuts frequencies.
+    private let eqNode = AVAudioUnitEQ(numberOfBands: 31)
     
     /// The currently open audio file being played.
     /// Kept as a property so we can re-schedule segments for seeking.
@@ -83,11 +90,26 @@ class EqualizerEngine {
     private var volume: Double = 1.0
     
     /// The current EQ gains in decibels (-12 to +12), one per band.
-    private var gains: [Double] = Array(repeating: 0.0, count: 10)
-    
-    /// The center frequency for each of the 10 EQ bands.
+    private var gains: [Double] = Array(repeating: 0.0, count: 31)
+
+    /// The center frequency for each of the 31 EQ bands.
     /// Must match EqualizerManager.bandFrequencies so the sliders line up.
     private var frequencies: [Double] = EqualizerManager.bandFrequencies
+
+    /// Whether the spectrum tap is already installed on the mixer.
+    /// The mixer node lives for the engine's whole lifetime, so the tap
+    /// is installed exactly once (installing twice throws).
+    private var spectrumTapInstalled = false
+
+    /// Buffer counter used to throttle spectrum callbacks to ~15/second.
+    private var spectrumBufferCount = 0
+
+    /// Reusable FFT setup for the spectrum analyzer (1024-point FFT).
+    private var fftSetup: FFTSetup?
+
+    /// Smoothed spectrum levels, so the visualizer bars fall gracefully
+    /// instead of jittering on every buffer.
+    private var smoothedLevels: [Float] = Array(repeating: 0, count: 24)
     
     /// The sample rate of the current audio file (frames per second).
     /// Used to convert between seconds and sample frames when seeking.
@@ -128,6 +150,14 @@ class EqualizerEngine {
         engine.attach(eqNode)
     }
 
+    deinit {
+        // Engines are created per song; release the FFT setup so a long
+        // session doesn't accumulate one setup per track.
+        if let setup = fftSetup {
+            vDSP_destroy_fftsetup(setup)
+        }
+    }
+
     // MARK: - Public Playback Controls
     
     /// Start playing a local audio file through the equalizer.
@@ -136,8 +166,10 @@ class EqualizerEngine {
     ///   - url: The local file URL of the downloaded song.
     ///   - rate: Playback speed (1.0 = normal).
     ///   - volume: Output volume (0.0 - 1.0).
-    ///   - gains: 10 EQ gain values in decibels (-12 to +12).
-    ///   - frequencies: 10 center frequencies for the EQ bands.
+    ///   - gains: 31 EQ gain values in decibels (-12 to +12).
+    ///   - frequencies: 31 center frequencies for the EQ bands.
+    ///   - preamp: Overall gain in decibels applied via the EQ node's
+    ///             globalGain (the Winamp preamp slider).
     ///   - completion: Called once the file is open and playing, with the
     ///                 file's duration in seconds (0 if setup failed).
     func playFile(
@@ -146,6 +178,7 @@ class EqualizerEngine {
         volume: Double,
         gains: [Double],
         frequencies: [Double],
+        preamp: Double,
         completion: @escaping (Double) -> Void
     ) {
         // Reset the ended-flag so a fresh song can end cleanly later
@@ -192,6 +225,8 @@ class EqualizerEngine {
         buildGraph(format: file.processingFormat)
         // Configure the EQ bands with the chosen frequencies and gains
         configureEQ()
+        // Apply the preamp as the EQ node's overall gain
+        eqNode.globalGain = Float(preamp)
         // Configure the playback speed
         timePitch.rate = Float(rate)
         // Configure the output volume
@@ -214,6 +249,8 @@ class EqualizerEngine {
         
         // Start the player node, audio now flows through the EQ
         playerNode.play()
+        // Feed the spectrum visualizer (tap installed once per engine)
+        installSpectrumTapIfNeeded()
         // Start polling the playback position for progress updates
         startTimeTimer()
         
@@ -295,7 +332,7 @@ class EqualizerEngine {
     
     /// Update the EQ band gains live (while a song is playing).
     ///
-    /// - Parameter newGains: 10 gain values in decibels (-12 to +12).
+    /// - Parameter newGains: 31 gain values in decibels (-12 to +12).
     func setGains(_ newGains: [Double]) {
         // Store the new values
         gains = newGains
@@ -309,6 +346,122 @@ class EqualizerEngine {
         }
     }
     
+    /// Update the preamp (the EQ node's global gain) live.
+    ///
+    /// - Parameter decibels: Overall gain in decibels (-12 to +12).
+    func setPreamp(_ decibels: Double) {
+        eqNode.globalGain = Float(decibels)
+    }
+
+    /// Set the stereo balance (-1.0 = full left, 0 = center, 1.0 = right).
+    /// The Winamp player's BAL slider drives this.
+    func setPan(_ pan: Double) {
+        playerNode.pan = Float(min(max(pan, -1.0), 1.0))
+    }
+
+    /// How many bands the EQ node actually has. The UI drives its slider
+    /// count from EqualizerManager.bandFrequencies (also 31); this is here
+    /// so a mismatch would be visible in one place instead of silently
+    /// dropping bands.
+    var bandCount: Int { eqNode.bands.count }
+
+    // MARK: - Spectrum Analyzer
+
+    /// Install a tap on the main mixer's output that runs a real FFT over
+    /// the playing audio and reports 24 log-spaced band levels through
+    /// `onLevels`. Installed once: the mixer outlives individual songs.
+    private func installSpectrumTapIfNeeded() {
+        guard !spectrumTapInstalled else { return }
+        spectrumTapInstalled = true
+
+        let mixer = engine.mainMixerNode
+        let format = mixer.outputFormat(forBus: 0)
+        mixer.installTap(onBus: 0, bufferSize: 1024, format: format) { [weak self] buffer, _ in
+            self?.processSpectrumBuffer(buffer)
+        }
+    }
+
+    /// FFT one audio buffer into 24 smoothed levels (0.0 to 1.0).
+    /// Runs on the audio render thread: no allocation-heavy work beyond
+    /// fixed-size scratch arrays, and the callback out is throttled.
+    private func processSpectrumBuffer(_ buffer: AVAudioPCMBuffer) {
+        guard let channelData = buffer.floatChannelData else { return }
+        let frameCount = Int(buffer.frameLength)
+        guard frameCount >= 512 else { return }
+        // Degenerate formats would poison the math below (division by a
+        // zero channel count or a zero-width FFT bin); real files never
+        // produce them, but the guard is one line.
+        guard buffer.format.channelCount > 0, buffer.format.sampleRate > 0 else { return }
+
+        let log2n: vDSP_Length = 10 // 1024-point FFT
+        let n = 1 << log2n
+        if fftSetup == nil {
+            fftSetup = vDSP_create_fftsetup(log2n, FFTRadix(kFFTRadix2))
+        }
+        guard let setup = fftSetup else { return }
+
+        // Mono-mix the first 1024 frames into a real input array.
+        var realInput = [Float](repeating: 0, count: n)
+        let frames = min(frameCount, n)
+        let channelCount = Int(buffer.format.channelCount)
+        for i in 0..<frames {
+            var sum: Float = 0
+            for ch in 0..<min(channelCount, 2) {
+                sum += channelData[ch][i]
+            }
+            realInput[i] = sum / Float(min(channelCount, 2))
+        }
+
+        // Forward FFT via the split-complex API.
+        var magnitudes = [Float](repeating: 0, count: n / 2)
+        realInput.withUnsafeMutableBufferPointer { realPtr in
+            var imag = [Float](repeating: 0, count: n)
+            imag.withUnsafeMutableBufferPointer { imagPtr in
+                var split = DSPSplitComplex(realp: realPtr.baseAddress!, imagp: imagPtr.baseAddress!)
+                vDSP_fft_zip(setup, &split, 1, log2n, FFTDirection(FFT_FORWARD))
+                vDSP_zvmags(&split, 1, &magnitudes, 1, vDSP_Length(n / 2))
+            }
+        }
+
+        // Bin the FFT magnitudes into 24 log-spaced bands from ~40 Hz to
+        // ~16 kHz, convert to a 0..1 perceptual level, and smooth.
+        let sampleRate = buffer.format.sampleRate
+        let binWidth = sampleRate / Double(n)
+        var levels = [Float](repeating: 0, count: 24)
+        for band in 0..<24 {
+            let lowFreq = 40.0 * pow(1.335, Double(band))
+            let highFreq = 40.0 * pow(1.335, Double(band + 1))
+            let lowBin = max(1, Int(lowFreq / binWidth))
+            let highBin = min(n / 2 - 1, max(lowBin + 1, Int(highFreq / binWidth)))
+            var peak: Float = 0
+            for bin in lowBin..<highBin {
+                peak = max(peak, magnitudes[bin])
+            }
+            // magnitudes are squared; sqrt back to amplitude, then map
+            // -60 dB..0 dB onto 0..1.
+            let amplitude = sqrt(peak)
+            let db = 20 * log10(max(amplitude, 1e-6))
+            levels[band] = Float(min(max((db + 60) / 60, 0), 1))
+        }
+
+        // Attack fast, release slow, like the classic Winamp bars.
+        for band in 0..<24 {
+            if levels[band] > smoothedLevels[band] {
+                smoothedLevels[band] = levels[band]
+            } else {
+                smoothedLevels[band] = smoothedLevels[band] * 0.72 + levels[band] * 0.28
+            }
+        }
+
+        spectrumBufferCount += 1
+        if spectrumBufferCount % 3 == 0 {
+            let snapshot = smoothedLevels
+            DispatchQueue.main.async { [weak self] in
+                self?.onLevels?(snapshot)
+            }
+        }
+    }
+
     // MARK: - Private Setup Helpers
     
     /// Connect all nodes in the audio graph in the correct order:
@@ -336,8 +489,10 @@ class EqualizerEngine {
             band.frequency = Float(frequencies[index])
             // Parametric filters are the standard "shelf/peak" EQ shape
             band.filterType = .parametric
-            // Bandwidth of 0.5 octaves = a fairly narrow, natural curve
-            band.bandwidth = 0.5
+            // Bandwidth of 0.35 octaves ≈ the 1/3-octave spacing of the
+            // 31 ISO bands, so adjacent bands overlap just enough to sum
+            // into a smooth graphic-EQ curve.
+            band.bandwidth = 0.35
             // Apply this band's gain (0.0 = flat when gains are all zero)
             if index < gains.count {
                 band.gain = Float(gains[index])
@@ -426,6 +581,9 @@ class EqualizerEngine {
         engine.stop()
         // Release the file reference so it can be closed by the system
         audioFile = nil
+        // Flatline the visualizer so it doesn't freeze on the last frame
+        smoothedLevels = Array(repeating: 0, count: 24)
+        onLevels?(smoothedLevels)
     }
     
     // MARK: - Current Position

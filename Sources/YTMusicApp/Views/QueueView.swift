@@ -1,5 +1,10 @@
 import SwiftUI // SwiftUI provides the declarative UI building blocks (View, List, Section, etc.) used throughout this file
 
+/// Winamp playlist palette (ronda 6): near-black green-tinted rows,
+/// LED-green accents, monospace text.
+private let queueRowBg = Color(red: 0.03, green: 0.06, blue: 0.03)
+private let queueGreen = Color(red: 0.16, green: 0.96, blue: 0.26)
+
 /// The queue screen showing what's currently playing and what comes next.
 ///
 /// HOW IT WORKS:
@@ -45,6 +50,9 @@ struct QueueView: View {
                 nowPlayingSection
                 upNextOrEmptySection
             }
+            .scrollContentBackground(.hidden)
+            .background(Color.black)
+            .preferredColorScheme(.dark)
             .navigationTitle("Queue")
             // .inline = smaller title that doesn't become large on scroll
             .navigationBarTitleDisplayMode(.inline)
@@ -123,6 +131,7 @@ struct QueueView: View {
                 // backward from currentIndex instead of forward.
                 ForEach(Array(audioPlayer.history.enumerated()), id: \.element.id) { index, song in
                     historyRow(song: song)
+                        .listRowBackground(queueRowBg)
                         .contentShape(Rectangle()) // Makes the whole row tappable, not just the text/image
                         .onTapGesture {
                             playHistoryItem(atLocalIndex: index)
@@ -172,6 +181,7 @@ struct QueueView: View {
         if let currentSong = audioPlayer.currentSong {
             Section {
                 nowPlayingRow(song: currentSong)
+                    .listRowBackground(queueRowBg)
             } header: {
                 Text("Now Playing")
             }
@@ -188,12 +198,13 @@ struct QueueView: View {
             // Song title and artist, stacked vertically
             VStack(alignment: .leading, spacing: 4) {
                 Text(currentSong.title)
-                    .font(.body)
-                    .fontWeight(.medium)
+                    .font(.system(.body, design: .monospaced))
+                    .fontWeight(.bold)
+                    .foregroundColor(queueGreen)
                     .lineLimit(1) // Truncate with "..." if too long
 
                 Text(currentSong.artist)
-                    .font(.subheadline)
+                    .font(.system(.subheadline, design: .monospaced))
                     .foregroundColor(.secondary) // Gray color
                     .lineLimit(1)
             }
@@ -202,7 +213,7 @@ struct QueueView: View {
 
             // Speaker icon shows this song is currently playing
             Image(systemName: "speaker.wave.2.fill")
-                .foregroundColor(.blue)
+                .foregroundColor(queueGreen)
         }
     }
 
@@ -235,6 +246,7 @@ struct QueueView: View {
                 // correctly) by using the song's own `id`, not its position.
                 ForEach(Array(audioPlayer.upNext.enumerated()), id: \.element.id) { index, song in
                     upNextRow(index: index, song: song)
+                        .listRowBackground(queueRowBg)
                         // SwipeActions = swipe left to reveal buttons (like iOS mail)
                         .swipeActions(edge: .trailing) {
                             Button(role: .destructive) { // .destructive = red color
@@ -287,8 +299,8 @@ struct QueueView: View {
 
             // Position number (1, 2, 3...), display as index+1 so it starts at 1
             Text("\(index + 1)")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
+                .font(.system(.subheadline, design: .monospaced))
+                .foregroundColor(queueGreen)
                 .frame(width: 24)
 
             queueThumbnail(url: song.thumbnailUrl, size: 48, cornerRadius: 6)
@@ -296,11 +308,12 @@ struct QueueView: View {
             // Song title and artist
             VStack(alignment: .leading, spacing: 4) {
                 Text(song.title)
-                    .font(.subheadline)
+                    .font(.system(.subheadline, design: .monospaced))
+                    .foregroundColor(Color(white: 0.85))
                     .lineLimit(1)
 
                 Text(song.artist)
-                    .font(.caption)
+                    .font(.system(.caption, design: .monospaced))
                     .foregroundColor(.secondary)
                     .lineLimit(1)
             }
@@ -358,6 +371,7 @@ struct QueueView: View {
             }
             .frame(maxWidth: .infinity) // Center horizontally
             .padding()
+            .listRowBackground(queueRowBg)
         }
     }
 

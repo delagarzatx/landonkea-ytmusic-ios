@@ -73,8 +73,9 @@ final class EqualizerEngineTests: XCTestCase {
             url: url,
             rate: 1.0,
             volume: 1.0,
-            gains: Array(repeating: 0.0, count: 10),
+            gains: Array(repeating: 0.0, count: 31),
             frequencies: EqualizerManager.bandFrequencies,
+            preamp: 0,
             completion: { duration in
                 reportedDuration = duration
                 expectation.fulfill()
@@ -110,8 +111,9 @@ final class EqualizerEngineTests: XCTestCase {
                 url: url,
                 rate: 1.0,
                 volume: 1.0,
-                gains: Array(repeating: 0.0, count: 10),
+                gains: Array(repeating: 0.0, count: 31),
                 frequencies: EqualizerManager.bandFrequencies,
+                preamp: 0,
                 completion: { duration in
                     reportedDuration = duration
                     expectation.fulfill()
@@ -142,8 +144,9 @@ final class EqualizerEngineTests: XCTestCase {
             url: url,
             rate: 1.0,
             volume: 0.0,
-            gains: Array(repeating: 0.0, count: 10),
+            gains: Array(repeating: 0.0, count: 31),
             frequencies: EqualizerManager.bandFrequencies,
+            preamp: 0,
             completion: { _ in playExpectation.fulfill() }
         )
         wait(for: [playExpectation], timeout: 5)

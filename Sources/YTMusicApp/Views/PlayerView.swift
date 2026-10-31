@@ -1,136 +1,96 @@
 import SwiftUI
 
-/// The full-screen music player that shows when you tap the mini player.
+// MARK: - Winamp palette
+// The classic Winamp look: brushed dark-metal panels, a black LCD with
+// green LED text, and chunky raised transport buttons. Ronda 6 turned
+// the player into that face at David's request ("estilo retro tipo
+// Winamp"), with the 31-band EQ window to match.
+
+/// LED green used across the whole Winamp face.
+private let waGreen = Color(red: 0.16, green: 0.96, blue: 0.26)
+/// Dimmer green for secondary LCD text.
+private let waGreenDim = Color(red: 0.10, green: 0.55, blue: 0.16)
+/// Near-black LCD background.
+private let waLCD = Color(red: 0.02, green: 0.05, blue: 0.02)
+/// Panel metal gradient stops.
+private let waPanelTop = Color(red: 0.16, green: 0.16, blue: 0.20)
+private let waPanelBottom = Color(red: 0.07, green: 0.07, blue: 0.09)
+
+/// The full-screen music player, Winamp-style (ronda 6).
 ///
 /// HOW IT WORKS:
-/// - Presented as a full-screen cover (slides up from bottom, covers entire screen)
-/// - Shows album art, song info, progress bar, and playback controls
-/// - Uses bindings and environment objects to stay in sync with AudioPlayer
-/// - Control Center / lock screen controls are handled by AudioPlayer, not here
+/// - Presented as a full-screen cover when the mini player is tapped
+/// - One "main window": LCD (time, spectrum visualizer, marquee title),
+///   position slider, transport buttons, VOL/BAL sliders, toggle chips
+/// - Below it, the "playlist window": the live queue, monospace green
+///   on black, current track highlighted; already-played rows can be
+///   tapped to jump back (same rule as QueueView's History section)
+/// - All playback actions still go through AudioPlayer; the EQ window,
+///   queue sheet, lyrics, sleep timer, car mode, related songs and the
+///   speed picker are the same sheets the old player had.
 struct PlayerView: View {
-    
-    /// Grab the audio player from the environment. This is the source of truth
-    /// for what's playing, playback state, progress, queue, shuffle, and repeat.
+
     @EnvironmentObject var audioPlayer: AudioPlayer
-    
-    /// `dismiss` lets us close this full-screen cover programmatically.
-    /// We get this from the SwiftUI environment, it's provided by `.fullScreenCover`.
     @Environment(\.dismiss) var dismiss
-    
-    /// Two-way binding to the parent's `showFullPlayer` state.
-    /// When we set `isShowing = false`, the parent hides this view.
-    /// The parent controls whether this view is shown; we just ask to be dismissed.
     @Binding var isShowing: Bool
-    
-    /// Whether to show the lyrics overlay on top of the album art.
-    /// Toggled by the lyrics button in the bottom controls.
+
     @State private var showLyrics = false
-    
-    /// Whether car mode is active (big buttons, simplified UI for driving)
     @State private var showCarMode = false
-    
-    /// Whether the sleep timer modal is showing
     @State private var showSleepTimer = false
-    
-    /// Whether the equalizer modal is showing
     @State private var showEqualizer = false
-    
-    /// Whether the player is in light mode (overrides global setting)
-    @State private var isLightMode = false
-    
-    /// Whether the queue sheet is showing
     @State private var showQueue = false
-    
-    /// Whether the related songs section is showing
     @State private var showRelated = false
-    
-    /// Whether the playback speed picker is showing
     @State private var showSpeedPicker = false
-    
-    /// Whether we are in a regular (iPad landscape) or compact (iPhone) horizontal size class
-    @Environment(\.horizontalSizeClass) var horizontalSizeClass
-    
-    /// The offline manager for downloading songs
+    /// Winamp's time display toggles elapsed/remaining when tapped.
+    @State private var showRemaining = false
+
     @EnvironmentObject var offlineManager: OfflineManager
-    
-    /// The equalizer manager for audio effects
     @EnvironmentObject var equalizer: EqualizerManager
-    
-    /// The API client, needed to re-fetch player info for download quality
     @EnvironmentObject var apiClient: APIClient
-    
+
     var body: some View {
-        // Safely unwrap the current song using `if let`. `audioPlayer.currentSong`
-        // is an Optional (a value that might be present or might be `nil`/absent).
-        // `if let song = ...` only runs the code inside the braces when there
-        // IS a song, and gives us a safe, non-optional `song` constant to use
-        // inside. If nothing is playing, the whole body evaluates to nothing,
-        // so the full-screen cover renders empty.
         if let song = audioPlayer.currentSong {
-            // ZStack layers its children on top of one another (Z axis = depth),
-            // unlike VStack (vertical) or HStack (horizontal). Here it's used to
-            // put the blurred background behind the VStack of actual content.
             ZStack {
-                backgroundArt(for: song)
+                LinearGradient(colors: [waPanelTop, waPanelBottom],
+                               startPoint: .top, endPoint: .bottom)
+                    .ignoresSafeArea()
 
-                // Main content stacked vertically with 24pt spacing between items
-                VStack(spacing: 24) {
-                    headerBar(for: song)
-
-                    Spacer() // Pushes album art to center vertically
-
-                    albumArt(for: song)
-
-                    songInfo(for: song)
-
-                    progressSection
-
-                    volumeSection
-
-                    playbackControls
-
-                    Spacer() // Pushes bottom controls down
-
-                    bottomControls(for: song)
+                ScrollView {
+                    VStack(spacing: 10) {
+                        titleBar(for: song)
+                        lcdPanel(for: song)
+                        positionSlider
+                        transportRow
+                        volBalRow
+                        toggleRow
+                        secondaryRow(for: song)
+                        playlistWindow(for: song)
+                    }
+                    .padding(10)
                 }
-                .padding()
             }
-            // Transition animation when this view appears/disappears
-            // .move(edge: .bottom) = slides up from the bottom edge
             .transition(.move(edge: .bottom))
-            // Related songs sheet, shows recommended songs
             .sheet(isPresented: $showRelated) {
                 relatedSongsSheet(for: song)
             }
-            // Car mode sheet, large buttons for safe driving
             .sheet(isPresented: $showCarMode) {
                 CarModeView()
                     .environmentObject(audioPlayer)
             }
-            // Sleep timer sheet, set a countdown to stop playback
             .sheet(isPresented: $showSleepTimer) {
                 SleepTimerView()
                     .environmentObject(audioPlayer)
             }
-            // Equalizer sheet, adjust audio frequencies
             .sheet(isPresented: $showEqualizer) {
                 EqualizerView()
                     .environmentObject(equalizer)
             }
-            // Queue sheet, view and manage the playback queue
             .sheet(isPresented: $showQueue) {
                 QueueView()
             }
-            // Playback speed picker, choose from 0.25× to 2.0×
             .sheet(isPresented: $showSpeedPicker) {
                 speedPickerSheet
             }
-            // Swipe down gesture to dismiss player.
-            // `.gesture(...)` attaches a low-level gesture recognizer to the
-            // view. DragGesture tracks a finger dragging across the screen;
-            // `.onEnded` runs once, when the finger lifts up, with a `value`
-            // describing the total drag. `value.translation.height` is how
-            // far down (positive) or up (negative) the drag moved in points.
             .gesture(
                 DragGesture()
                     .onEnded { value in
@@ -139,462 +99,405 @@ struct PlayerView: View {
                         }
                     }
             )
-            // Override the color scheme for this view only
-            // isLightMode toggles between light and dark regardless of global setting
-            .preferredColorScheme(isLightMode ? .light : .dark)
+            .preferredColorScheme(.dark)
         }
     }
 
-    // MARK: - Body sub-sections
-    // Below, the giant body above is broken into small, single-purpose
-    // computed properties and methods (some take the unwrapped `song` as a
-    // parameter since they need it but don't have access to the `if let`
-    // scope from `body`). Each one returns "some View", SwiftUI's way of
-    // saying "a specific, but unnamed, view type." Splitting things up this
-    // way keeps each piece short enough to read in one glance, and is also
-    // friendlier to the Swift compiler's type-checker, which can struggle
-    // with very large single expressions.
+    // MARK: - Title bar
 
-    /// Blurred, full-screen album art used as the background, with a
-    /// fallback gradient shown while the image is still loading.
-    private func backgroundArt(for song: NowPlaying) -> some View {
-        // AsyncImage loads an image from a URL in the background (without
-        // blocking the UI) and re-renders once it's ready. `phase` reports
-        // the loading state; `phase.image` is an Optional Image that's only
-        // non-nil once loading succeeds.
-        AsyncImage(url: URL(string: song.thumbnailUrl)) { phase in
-            if let image = phase.image {
-                image
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .blur(radius: 60, opaque: true)
-                    .overlay(Color.black.opacity(0.4)) // Dark overlay for readability
-                    .ignoresSafeArea()
-            } else {
-                // Fallback gradient while album art loads
-                LinearGradient(
-                    colors: [.blue.opacity(0.8), .purple.opacity(0.8)],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                .ignoresSafeArea()
-            }
-        }
-    }
-
-    /// Top row: close button, "Now Playing" label, share, and light/dark toggle.
-    private func headerBar(for song: NowPlaying) -> some View {
-        HStack {
-            // Close button, chevron down icon
-            Button(action: {
-                // Setting isShowing to false tells the parent
-                // (ContentView) to hide this full-screen cover
-                isShowing = false
-            }) {
-                Image(systemName: "chevron.down")
-                    .font(.title2)
-                    .foregroundColor(.white)
-            }
-            .accessibilityLabel("Close player")
-
-            Spacer() // Pushes center text to the middle
-
-            Text("Now Playing")
-                .font(.subheadline)
-                .foregroundColor(.white.opacity(0.8))
-
-            Spacer() // Pushes right button to the edge
-
-            // Share button, shares the song link via iOS share sheet
-            // ShareLink is SwiftUI's built-in way to share content.
-            // It presents the standard iOS share sheet (AirDrop, Messages, etc.)
-            // NOTE: The preview image is omitted because ShareLink's
-            // preview only accepts Transferable types, and AsyncImage
-            // does not conform to Transferable.
+    /// Winamp-style title bar: app name left, share + close right.
+    private func titleBar(for song: NowPlaying) -> some View {
+        HStack(spacing: 8) {
+            Text("▚ WINAMP")
+                .font(.system(size: 13, weight: .black, design: .monospaced))
+                .foregroundColor(waGreen)
+            Text("HERON MUSIC")
+                .font(.system(size: 10, weight: .bold, design: .monospaced))
+                .foregroundColor(.white.opacity(0.45))
+            Spacer()
             ShareLink(
-                // song.id comes from the unofficial YouTube API and
-                // isn't validated as URL-safe before this point, so
-                // avoid force-unwrapping, fall back to YouTube
-                // Music's homepage rather than crashing if it's ever
-                // an unexpected value. `??` is the "nil-coalescing operator":
-                // it evaluates the left side, and if that's nil, uses the
-                // right side instead. The `!` after the fallback URL is a
-                // force-unwrap, but it's safe here because the string being
-                // unwrapped is a hardcoded literal we control, not data from
-                // the network, it can never fail to parse as a URL.
                 item: URL(string: "https://music.youtube.com/watch?v=\(song.id)")
                     ?? URL(string: "https://music.youtube.com")!,
                 preview: SharePreview(song.title)
             ) {
                 Image(systemName: "square.and.arrow.up")
-                    .font(.title2)
-                    .foregroundColor(.white)
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundColor(waGreen)
             }
-
-            // Dark/light mode toggle, switches the player's color scheme
-            Button(action: {
-                // `withAnimation` wraps a state change so SwiftUI animates
-                // the resulting UI update (here, the color scheme flip)
-                // instead of snapping instantly.
-                withAnimation {
-                    isLightMode.toggle()
-                }
-            }) {
-                Image(systemName: isLightMode ? "moon.fill" : "sun.max.fill")
-                    .font(.title2)
-                    .foregroundColor(.white)
+            Button {
+                isShowing = false
+            } label: {
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 14, weight: .black))
+                    .foregroundColor(waGreen)
             }
-            .accessibilityLabel(isLightMode ? "Switch to dark mode" : "Switch to light mode")
+            .accessibilityLabel("Close player")
         }
-        .padding(.horizontal)
+        .padding(.horizontal, 6)
+        .padding(.vertical, 4)
+        .background(Color.black.opacity(0.35))
+        .overlay(Rectangle().stroke(Color.white.opacity(0.15), lineWidth: 1))
     }
 
-    /// The square album art image, with an optional lyrics overlay on top.
-    private func albumArt(for song: NowPlaying) -> some View {
-        // AsyncImage loads the thumbnail URL asynchronously.
-        // While loading, it shows a gray rectangle with a music note icon.
-        // .aspectRatio(contentMode: .fit) = scale to fit within frame
-        // (vs .fill which would crop to fill the frame)
-        ZStack {
-            AsyncImage(url: URL(string: song.thumbnailUrl)) { image in
-                image
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-            } placeholder: {
-                // Placeholder shown while the image loads
-                Rectangle()
-                    .fill(Color.white.opacity(0.2))
-                    .overlay(
-                        Image(systemName: "music.note")
-                            .font(.system(size: 60))
-                            .foregroundColor(.white.opacity(0.5))
-                    )
-            }
-            .frame(width: 300, height: 300)
-            .cornerRadius(16)
-            .shadow(radius: 10) // Drop shadow for depth
+    // MARK: - LCD panel
 
-            // Lyrics overlay, shown on top of album art when toggled
-            if showLyrics {
-                LyricsView()
-                    .frame(width: 300, height: 300)
-                    .cornerRadius(16)
-                    .transition(.opacity) // Fade in/out
-            }
-        }
-        // `.animation(_:value:)` tells SwiftUI to animate any visual change
-        // that happens as a *result* of `showLyrics` changing (like the
-        // lyrics overlay fading in/out above), rather than popping instantly.
-        .animation(.easeInOut(duration: 0.3), value: showLyrics)
-    }
-
-    /// Song title and artist name, centered under the album art.
-    private func songInfo(for song: NowPlaying) -> some View {
-        VStack(spacing: 8) {
-            Text(song.title)
-                .font(.title2)
-                .fontWeight(.bold)
-                .foregroundColor(.white)
-                .lineLimit(1) // One line, truncate with "..." if too long
-
-            Text(song.artist)
-                .font(.body)
-                .foregroundColor(.white.opacity(0.8))
-                .lineLimit(1)
-        }
-    }
-
-    /// Playback-position slider plus the current-time / total-duration labels.
-    private var progressSection: some View {
-        VStack(spacing: 4) {
-            // The Slider's value must be a Binding, a two-way connection
-            // between the UI and our data. A `Binding` lets a child view
-            // (here, the Slider) both READ a value and WRITE a new value
-            // back out, without owning the underlying storage itself. We
-            // create a custom Binding by hand from a get/set pair:
-            //
-            //   get: read audioPlayer.progress (0.0 to 1.0)
-            //   set: when user drags, call audioPlayer.seek(to: newValue)
-            //
-            // The `{ editing in }` trailing closure is called when the
-            // user starts (editing=true) or stops (editing=false) dragging.
-            // We don't use it here, but it could be used to pause updates
-            // while the user is scrubbing (to prevent the slider from jumping).
-            Slider(
-                value: Binding(
-                    get: { audioPlayer.progress },
-                    set: { newValue in
-                        audioPlayer.seek(to: newValue)
+    /// The black LCD: big green time, the spectrum visualizer, the
+    /// scrolling title, and the source line (local file vs streaming).
+    private func lcdPanel(for song: NowPlaying) -> some View {
+        VStack(spacing: 6) {
+            HStack(alignment: .top, spacing: 10) {
+                // Time + play state. Tap toggles elapsed / remaining.
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(timeText)
+                        .font(.system(size: 30, weight: .bold, design: .monospaced))
+                        .foregroundColor(waGreen)
+                        .onTapGesture { showRemaining.toggle() }
+                    HStack(spacing: 5) {
+                        Image(systemName: audioPlayer.state == .playing ? "play.fill" : "pause.fill")
+                            .font(.system(size: 8))
+                            .foregroundColor(waGreen)
+                        Text(audioPlayer.state == .playing ? "PLAY" : "PAUSE")
+                            .font(.system(size: 9, weight: .bold, design: .monospaced))
+                            .foregroundColor(waGreenDim)
                     }
-                )
-            ) { editing in
-                // Called when user starts/stops dragging the slider
-                // Currently unused, could pause periodic updates here
-            }
-            .tint(.white) // Color of the filled portion
-            .accessibilityLabel("Song progress")
-
-            // Time labels: current position on left, total duration on right
-            HStack {
-                Text(formatTime(audioPlayer.currentTime))
-                    .font(.caption)
-                    .foregroundColor(.white.opacity(0.8))
+                }
 
                 Spacer()
 
-                Text(formatTime(audioPlayer.duration))
-                    .font(.caption)
-                    .foregroundColor(.white.opacity(0.8))
-            }
-        }
-        .padding(.horizontal)
-    }
+                spectrumView
 
-    /// Volume slider between the progress bar and playback controls.
-    /// Shows a speaker icon on each end and a draggable slider.
-    private var volumeSection: some View {
-        HStack(spacing: 12) {
-            // Speaker icon (muted/low volume)
-            Image(systemName: "speaker.fill")
-                .font(.caption)
-                .foregroundColor(.white.opacity(0.6))
-
-            // Volume slider, same pattern as the progress slider
-            Slider(
-                value: Binding(
-                    get: { audioPlayer.volume },
-                    set: { newValue in
-                        audioPlayer.setVolume(newValue)
-                    }
-                )
-            ) { editing in
-                // Could pause volume updates while dragging if needed
-            }
-            .tint(.white)
-
-            // Speaker icon (high volume)
-            Image(systemName: "speaker.wave.3.fill")
-                .font(.caption)
-                .foregroundColor(.white.opacity(0.6))
-        }
-        .padding(.horizontal)
-    }
-
-    /// Shuffle / previous / play-pause / next / repeat row.
-    private var playbackControls: some View {
-        HStack(spacing: 40) {
-            // Shuffle button
-            // IMPORTANT: We call toggleShuffle() which handles saving
-            // the queue order, shuffling, and moving current song to front.
-            Button(action: {
-                Haptics.tap() // Vibrate on shuffle toggle
-                audioPlayer.toggleShuffle()
-            }) {
-                Image(systemName: "shuffle")
-                    .font(.title3)
-                    // Bright white when shuffle is on, dim when off
-                    .foregroundColor(audioPlayer.isShuffled ? .white : .white.opacity(0.5))
-            }
-            .accessibilityLabel(audioPlayer.isShuffled ? "Turn off shuffle" : "Turn on shuffle")
-
-            // Previous track button
-            Button(action: {
-                Haptics.tap()
-                audioPlayer.playPrevious()
-            }) {
-                Image(systemName: "backward.fill")
-                    .font(.title)
-                    .foregroundColor(.white)
-            }
-            .accessibilityLabel("Previous track")
-
-            // Play/pause button (the big center button)
-            // Shows pause icon when playing, play icon when paused/stopped
-            Button(action: {
-                Haptics.tap()
-                audioPlayer.togglePlayPause()
-            }) {
-                Image(systemName: audioPlayer.state == .playing ? "pause.fill" : "play.fill")
-                    .font(.largeTitle)
-                    .foregroundColor(.white)
-            }
-            .accessibilityLabel(audioPlayer.state == .playing ? "Pause" : "Play")
-
-            // Next track button
-            Button(action: {
-                Haptics.tap()
-                audioPlayer.playNext()
-            }) {
-                Image(systemName: "forward.fill")
-                    .font(.title)
-                    .foregroundColor(.white)
-            }
-            .accessibilityLabel("Next track")
-
-            // Repeat button
-            // IMPORTANT: We call toggleRepeat() which cycles through
-            // none → all → one → none. Previously this duplicated the
-            // cycling logic here, which is a maintenance risk if the
-            // AudioPlayer's logic ever changes.
-            Button(action: {
-                Haptics.tap()
-                audioPlayer.toggleRepeat()
-            }) {
-                // Show "repeat.1" icon when repeating one song,
-                // regular "repeat" icon otherwise
-                Image(systemName: audioPlayer.repeatMode == .one ? "repeat.1" : "repeat")
-                    .font(.title3)
-                    // Bright when repeat is on (all or one), dim when off
-                    .foregroundColor(audioPlayer.repeatMode != .none ? .white : .white.opacity(0.5))
-            }
-            // `{ ... }()` immediately calls the closure right where it's
-            // defined, so `.accessibilityLabel` receives the resulting
-            // String rather than the closure itself. A `switch` over the
-            // repeatMode enum picks the label describing what tapping the
-            // button will do NEXT (matching the none → all → one → none cycle).
-            .accessibilityLabel({
-                switch audioPlayer.repeatMode {
-                case .none: return "Turn on repeat"
-                case .all: return "Turn on repeat one"
-                case .one: return "Turn off repeat"
+                // Small artwork, like Winamp's video/vis window thumbnail.
+                AsyncImage(url: URL(string: song.thumbnailUrl)) { image in
+                    image.resizable().aspectRatio(contentMode: .fill)
+                } placeholder: {
+                    Rectangle().fill(Color.white.opacity(0.08))
+                        .overlay(Image(systemName: "music.note").foregroundColor(waGreenDim))
                 }
-            }())
+                .frame(width: 54, height: 54)
+                .clipped()
+                .overlay(Rectangle().stroke(waGreenDim, lineWidth: 1))
+            }
+
+            MarqueeText(text: "\(song.title)  —  \(song.artist)")
+                .frame(height: 16)
+
+            HStack {
+                Text(sourceLabel(for: song))
+                Spacer()
+                Text("\(formatTime(audioPlayer.duration)) TOTAL")
+            }
+            .font(.system(size: 9, weight: .bold, design: .monospaced))
+            .foregroundColor(waGreenDim)
+        }
+        .padding(10)
+        .background(waLCD)
+        .overlay(Rectangle().stroke(Color.white.opacity(0.25), lineWidth: 1))
+        .overlay(Rectangle().stroke(Color.black, lineWidth: 3).opacity(0.6))
+    }
+
+    /// Elapsed time, or "-remaining" after tapping the LCD clock.
+    private var timeText: String {
+        if showRemaining {
+            return "-" + formatTime(max(0, audioPlayer.duration - audioPlayer.currentTime))
+        }
+        return formatTime(audioPlayer.currentTime)
+    }
+
+    /// Honest source line: the EQ and visualizer only exist on the local
+    /// (downloaded) path; streamed songs say so instead of faking it.
+    private func sourceLabel(for song: NowPlaying) -> String {
+        if offlineManager.isDownloaded(song.id) {
+            return equalizer.isEnabled ? "LOCAL • 31-BAND EQ ON" : "LOCAL FILE"
+        }
+        if offlineManager.isDownloading(song.id) {
+            return "DOWNLOADING…"
+        }
+        return "STREAMING"
+    }
+
+    /// The 24-bar spectrum, fed by the engine's real FFT tap. On the
+    /// AVPlayer (streaming) path the levels stay zero and the bars rest
+    /// flat: no fake animation.
+    private var spectrumView: some View {
+        HStack(alignment: .bottom, spacing: 1.5) {
+            ForEach(0..<24, id: \.self) { i in
+                let level = i < audioPlayer.spectrumLevels.count
+                    ? CGFloat(audioPlayer.spectrumLevels[i]) : 0
+                Rectangle()
+                    .fill(barColor(level))
+                    .frame(width: 4.5, height: max(2, level * 40))
+            }
+        }
+        .frame(height: 42, alignment: .bottom)
+        .padding(.top, 4)
+    }
+
+    private func barColor(_ level: CGFloat) -> Color {
+        if level > 0.85 { return Color(red: 0.98, green: 0.25, blue: 0.15) }
+        if level > 0.62 { return Color(red: 0.98, green: 0.85, blue: 0.20) }
+        return waGreen
+    }
+
+    // MARK: - Position
+
+    private var positionSlider: some View {
+        Slider(
+            value: Binding(
+                get: { audioPlayer.progress },
+                set: { newValue in audioPlayer.seek(to: newValue) }
+            )
+        ) { _ in }
+        .tint(waGreen)
+        .accessibilityLabel("Song progress")
+    }
+
+    // MARK: - Transport
+
+    /// Chunky metal transport: previous / play-pause / stop / next,
+    /// plus the speed readout as an LCD chip on the right.
+    private var transportRow: some View {
+        HStack(spacing: 8) {
+            metalButton("backward.end.fill") { audioPlayer.playPrevious() }
+            metalButton(audioPlayer.state == .playing ? "pause.fill" : "play.fill") {
+                audioPlayer.togglePlayPause()
+            }
+            metalButton("stop.fill") { audioPlayer.stop() }
+            metalButton("forward.end.fill") { audioPlayer.playNext() }
+            Spacer()
+            Button {
+                showSpeedPicker = true
+            } label: {
+                Text("\(audioPlayer.playbackRate, specifier: "%.1f")×")
+                    .font(.system(size: 11, weight: .bold, design: .monospaced))
+                    .foregroundColor(abs(audioPlayer.playbackRate - 1.0) > 0.01 ? .yellow : waGreen)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 6)
+                    .background(waLCD)
+                    .overlay(Rectangle().stroke(Color.white.opacity(0.2), lineWidth: 1))
+            }
+            .accessibilityLabel("Playback speed")
         }
     }
 
-    /// Bottom row of small icon buttons: AirPlay, lyrics, download, car mode,
-    /// sleep timer, equalizer, related songs, queue, and playback speed.
-    private func bottomControls(for song: NowPlaying) -> some View {
-        HStack(spacing: 28) {
-            // AirPlay button, currently a placeholder
-            Button(action: {}) {
-                Image(systemName: "airplayaudio")
-                    .font(.title3)
-                    .foregroundColor(.white)
-            }
-            .accessibilityLabel("AirPlay")
+    private func metalButton(_ systemImage: String, action: @escaping () -> Void) -> some View {
+        Button {
+            Haptics.tap()
+            action()
+        } label: {
+            Image(systemName: systemImage)
+                .font(.system(size: 15, weight: .bold))
+                .foregroundColor(Color(white: 0.88))
+                .frame(width: 46, height: 32)
+                .background(LinearGradient(colors: [Color(white: 0.38), Color(white: 0.16)],
+                                           startPoint: .top, endPoint: .bottom))
+                .overlay(Rectangle().stroke(Color(white: 0.55), lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+    }
 
-            // Lyrics button, toggles lyrics overlay
-            Button(action: {
+    // MARK: - Volume / Balance
+
+    /// Winamp had VOL and BAL mini-sliders side by side; here they are.
+    /// Balance only affects the local (engine) path: AVPlayer can't pan.
+    private var volBalRow: some View {
+        HStack(spacing: 14) {
+            HStack(spacing: 6) {
+                Text("VOL")
+                    .font(.system(size: 9, weight: .black, design: .monospaced))
+                    .foregroundColor(waGreenDim)
+                Slider(
+                    value: Binding(
+                        get: { audioPlayer.volume },
+                        set: { newValue in audioPlayer.setVolume(newValue) }
+                    )
+                ) { _ in }
+                .tint(waGreen)
+            }
+            HStack(spacing: 6) {
+                Text("BAL")
+                    .font(.system(size: 9, weight: .black, design: .monospaced))
+                    .foregroundColor(waGreenDim)
+                Slider(
+                    value: Binding(
+                        get: { audioPlayer.balance },
+                        set: { newValue in audioPlayer.setBalance(newValue) }
+                    ),
+                    in: -1...1
+                ) { _ in }
+                .tint(waGreen)
+            }
+        }
+    }
+
+    // MARK: - Toggles
+
+    /// LCD chips: SHUFFLE / REPEAT / EQ / PLAYLIST / LYRICS.
+    private var toggleRow: some View {
+        HStack(spacing: 8) {
+            lcdToggle("SHUFFLE", active: audioPlayer.isShuffled) {
+                audioPlayer.toggleShuffle()
+            }
+            lcdToggle(repeatLabel, active: audioPlayer.repeatMode != .none) {
+                audioPlayer.toggleRepeat()
+            }
+            lcdToggle("EQ", active: equalizer.isEnabled) {
+                showEqualizer = true
+            }
+            lcdToggle("PLAYLIST", active: false) {
+                showQueue = true
+            }
+            lcdToggle("LYRICS", active: showLyrics) {
                 showLyrics.toggle()
-            }) {
-                Image(systemName: "text.alignleft")
-                    .font(.title3)
-                    .foregroundColor(showLyrics ? .white : .white.opacity(0.5))
             }
-            .accessibilityLabel(showLyrics ? "Hide lyrics" : "Show lyrics")
+            Spacer()
+        }
+    }
 
-            // Download button, saves song for offline playback
-            Button(action: {
+    private var repeatLabel: String {
+        audioPlayer.repeatMode == .one ? "REPEAT 1" : "REPEAT"
+    }
+
+    private func lcdToggle(_ label: String, active: Bool, action: @escaping () -> Void) -> some View {
+        Button {
+            Haptics.tap()
+            action()
+        } label: {
+            Text(label)
+                .font(.system(size: 10, weight: .black, design: .monospaced))
+                .foregroundColor(active ? .black : waGreen)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 6)
+                .background(active ? waGreen : Color.black.opacity(0.55))
+                .overlay(Rectangle().stroke(waGreen.opacity(0.55), lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: - Secondary actions
+
+    /// Download state, car mode, sleep timer and related songs, the
+    /// functions the old player's bottom row carried.
+    private func secondaryRow(for song: NowPlaying) -> some View {
+        HStack(spacing: 22) {
+            Button {
                 downloadCurrentSong()
-            }) {
+            } label: {
                 if offlineManager.isDownloading(song.id) {
-                    ProgressView()
-                        .tint(.white)
-                        .accessibilityLabel("Downloading")
+                    ProgressView().tint(waGreen)
                 } else if offlineManager.isDownloaded(song.id) {
                     Image(systemName: "checkmark.circle.fill")
-                        .font(.title3)
-                        .foregroundColor(.green)
+                        .foregroundColor(waGreen)
                 } else {
                     Image(systemName: "arrow.down.circle")
-                        .font(.title3)
-                        .foregroundColor(.white.opacity(0.5))
+                        .foregroundColor(.white.opacity(0.55))
                 }
             }
             .disabled(offlineManager.isDownloaded(song.id) || offlineManager.isDownloading(song.id))
-            .accessibilityLabel({
-                if offlineManager.isDownloading(song.id) { return "Downloading" }
-                if offlineManager.isDownloaded(song.id) { return "Downloaded" }
-                return "Download song"
-            }())
+            .accessibilityLabel("Download song")
 
-            // Car mode button, switches to large-button UI for safe driving
-            Button(action: {
+            Button {
                 showCarMode = true
-            }) {
-                Image(systemName: "car.fill")
-                    .font(.title3)
-                    .foregroundColor(.white.opacity(0.5))
+            } label: {
+                Image(systemName: "car.fill").foregroundColor(.white.opacity(0.55))
             }
             .accessibilityLabel("Car mode")
 
-            // Sleep timer button, shows timer modal for bedtime listening
-            Button(action: {
+            Button {
                 showSleepTimer = true
-            }) {
+            } label: {
                 Image(systemName: audioPlayer.isSleepTimerActive ? "moon.fill" : "moon")
-                    .font(.title3)
-                    // Purple when timer is active, dim when off
-                    .foregroundColor(audioPlayer.isSleepTimerActive ? .purple : .white.opacity(0.5))
+                    .foregroundColor(audioPlayer.isSleepTimerActive ? .purple : .white.opacity(0.55))
             }
-            .accessibilityLabel(audioPlayer.isSleepTimerActive ? "Sleep timer active" : "Sleep timer")
+            .accessibilityLabel("Sleep timer")
 
-            // Equalizer button, opens equalizer for audio adjustments
-            //
-            // BUG FIX: this used to be
-            //   `equalizer.isEnabled ? "slider.horizontal.3" : "slider.horizontal.3"`
-            //, both branches of that ternary (if/else expression) named the
-            // exact same SF Symbol, so the icon could never actually change
-            // no matter what `equalizer.isEnabled` was. That's a "dead
-            // conditional": a condition that's evaluated but can never
-            // produce a visibly different result. Only the color was
-            // actually reacting to the state. Simplified to a plain
-            // constant since there's only one icon to show; the color below
-            // still communicates the on/off state.
-            Button(action: {
-                showEqualizer = true
-            }) {
-                Image(systemName: "slider.horizontal.3")
-                    .font(.title3)
-                    // Orange when equalizer is active, dim when off
-                    .foregroundColor(equalizer.isEnabled ? .orange : .white.opacity(0.5))
-            }
-            .accessibilityLabel("Equalizer")
-
-            // Related songs button, toggles related songs section
-            Button(action: {
+            Button {
                 showRelated.toggle()
-            }) {
+            } label: {
                 Image(systemName: "arrow.triangle.2.circlepath")
-                    .font(.title3)
-                    .foregroundColor(showRelated ? .purple : .white.opacity(0.5))
+                    .foregroundColor(.white.opacity(0.55))
             }
             .accessibilityLabel("Related songs")
 
-            // Queue button, shows the queue sheet
-            Button(action: {
-                showQueue = true
-            }) {
-                Image(systemName: "list.bullet")
-                    .font(.title3)
-                    .foregroundColor(.white)
-            }
-            .accessibilityLabel("Queue")
-
-            // Playback speed button, opens speed picker
-            Button(action: {
-                showSpeedPicker = true
-            }) {
-                // A local constant computed just for this button: true when
-                // the current rate differs from 1.0x by more than a tiny
-                // rounding tolerance, used to highlight non-default speeds.
-                let isCustom = abs(audioPlayer.playbackRate - 1.0) > 0.01
-                Text("\(audioPlayer.playbackRate, specifier: "%.1f")×")
-                    .font(.caption)
-                    .fontWeight(.bold)
-                    .foregroundColor(isCustom ? .yellow : .white.opacity(0.5))
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 3)
-                    .background(Capsule().stroke(isCustom ? Color.yellow : Color.white.opacity(0.3), lineWidth: 1))
-            }
-            .accessibilityLabel("Playback speed: \(audioPlayer.playbackRate, specifier: "%.1f")×")
+            Spacer()
         }
-        .padding(.bottom, 20)
+        .font(.system(size: 17))
+        .padding(.horizontal, 4)
     }
 
-    /// The sheet (a modal panel that slides up from the bottom) showing
-    /// songs related to the one currently playing.
+    // MARK: - Playlist window
+
+    /// The Winamp playlist editor, embedded under the main window:
+    /// numbered monospace rows on black, current track lit green.
+    /// Tapping an already-played row jumps back to it (playFromHistory);
+    /// upcoming rows are managed from the PLAYLIST sheet (QueueView).
+    /// When lyrics are on, this window shows the lyrics instead.
+    private func playlistWindow(for song: NowPlaying) -> some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text("PLAYLIST")
+                    .font(.system(size: 10, weight: .black, design: .monospaced))
+                    .foregroundColor(waGreen)
+                Spacer()
+                Text("\(audioPlayer.queue.count) TRACKS")
+                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+                    .foregroundColor(waGreenDim)
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 5)
+            .background(Color.black.opacity(0.5))
+
+            if showLyrics {
+                LyricsView()
+                    .frame(height: 280)
+            } else {
+                VStack(spacing: 0) {
+                    ForEach(Array(audioPlayer.queue.enumerated()), id: \.element.id) { index, item in
+                        playlistRow(index: index, item: item)
+                        if index < audioPlayer.queue.count - 1 {
+                            Rectangle().fill(Color.white.opacity(0.05)).frame(height: 1)
+                        }
+                    }
+                }
+            }
+        }
+        .background(waLCD)
+        .overlay(Rectangle().stroke(Color.white.opacity(0.25), lineWidth: 1))
+    }
+
+    private func playlistRow(index: Int, item: NowPlaying) -> some View {
+        let isCurrent = index == audioPlayer.currentIndex
+        let isPast = index < audioPlayer.currentIndex
+        return HStack(spacing: 8) {
+            Text(String(format: "%02d.", index + 1))
+                .foregroundColor(isCurrent ? waGreen : waGreenDim)
+            Text("\(item.title) — \(item.artist)")
+                .lineLimit(1)
+                .foregroundColor(isCurrent ? waGreen : Color(white: 0.75))
+            Spacer()
+            if isCurrent {
+                Image(systemName: "speaker.wave.2.fill")
+                    .font(.system(size: 9))
+                    .foregroundColor(waGreen)
+            }
+            Text(formatTime(Double(item.duration)))
+                .foregroundColor(waGreenDim)
+        }
+        .font(.system(size: 11, weight: isCurrent ? .bold : .regular, design: .monospaced))
+        .padding(.horizontal, 8)
+        .padding(.vertical, 5)
+        .background(isCurrent ? waGreen.opacity(0.14) : Color.clear)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            // Only history jumps exist in AudioPlayer (same rule as
+            // QueueView); upcoming rows stay display-only here.
+            if isPast {
+                audioPlayer.playFromHistory(at: index)
+            }
+        }
+    }
+
+    // MARK: - Sheets kept from the old player
+
     private func relatedSongsSheet(for song: NowPlaying) -> some View {
         NavigationView {
             ScrollView {
@@ -614,10 +517,7 @@ struct PlayerView: View {
         .environmentObject(apiClient)
         .environmentObject(audioPlayer)
     }
-    
-    // MARK: - Speed Picker Sheet
-    
-    /// Sheet that lets the user choose a playback speed.
+
     private var speedPickerSheet: some View {
         NavigationView {
             List {
@@ -649,23 +549,18 @@ struct PlayerView: View {
             }
         }
     }
-    
+
     // MARK: - Helpers
-    
-    /// Download the current song for offline playback.
-    ///
-    /// Re-fetches the player info with the download quality setting to get
-    /// the appropriate audio stream URL for the chosen quality level.
+
+    /// Download the current song for offline playback (unchanged logic:
+    /// re-fetch player info at the download quality, then hand the URL
+    /// to OfflineManager).
     private func downloadCurrentSong() {
         guard let song = audioPlayer.currentSong else { return }
-        
-        // Don't download if already downloaded or in progress
         guard !offlineManager.isDownloaded(song.id),
               !offlineManager.isDownloading(song.id) else { return }
-        
+
         Task {
-            // Re-fetch player info with download quality setting
-            // This gets a different audio URL if the user chose lower quality
             do {
                 let playerInfo = try await apiClient.getPlayerInfoForDownload(videoId: song.id)
                 await offlineManager.download(
@@ -680,27 +575,56 @@ struct PlayerView: View {
             }
         }
     }
-    
-    /// Convert seconds into a human-readable time string like "3:45".
-    ///
-    /// HOW IT WORKS:
-    /// - Divide total seconds by 60 to get minutes
-    /// - Use modulo (%) to get remaining seconds
-    /// - `%02d` means "2-digit number with leading zero" (e.g. "05" not "5")
-    ///
-    /// - Parameter seconds: Time in seconds (e.g. 225.0)
-    /// - Returns: Formatted string (e.g. "3:45")
+
+    /// Seconds → "3:45", with a NaN/infinite guard.
     private func formatTime(_ seconds: Double) -> String {
-        // Guard against NaN (Not a Number) and Infinite values.
-        // These can occur if the audio player hasn't loaded yet or
-        // if there's a parsing error with the duration. Return "0:00" as fallback.
         guard !seconds.isNaN && !seconds.isInfinite else {
             return "0:00"
         }
-        
-        let mins = Int(seconds) / 60    // Integer division gives minutes
-        let secs = Int(seconds) % 60    // Modulo gives remaining seconds
+        let mins = Int(seconds) / 60
+        let secs = Int(seconds) % 60
         return String(format: "%d:%02d", mins, secs)
+    }
+}
+
+// MARK: - Marquee
+
+/// A single-line scrolling text, Winamp's signature title crawl.
+/// Short text renders static; long text loops with a linear animation.
+private struct MarqueeText: View {
+    let text: String
+
+    @State private var offset: CGFloat = 0
+
+    var body: some View {
+        GeometryReader { geo in
+            // ~7.3 pt per character at 12 pt monospaced bold.
+            let textWidth = CGFloat(text.count) * 7.3
+            if textWidth > geo.size.width {
+                HStack(spacing: 40) {
+                    label
+                    label
+                }
+                .offset(x: offset)
+                .onAppear {
+                    offset = 0
+                    withAnimation(.linear(duration: Double(textWidth) / 45.0).repeatForever(autoreverses: false)) {
+                        offset = -(textWidth + 40)
+                    }
+                }
+            } else {
+                label
+            }
+        }
+        .clipped()
+    }
+
+    private var label: some View {
+        Text(text)
+            .font(.system(size: 12, weight: .bold, design: .monospaced))
+            .foregroundColor(waGreen)
+            .lineLimit(1)
+            .fixedSize()
     }
 }
 

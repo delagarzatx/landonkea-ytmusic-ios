@@ -25,8 +25,9 @@ import SwiftUI
 /// Streamed songs therefore cannot be equalized, the equalizer only
 /// affects downloaded (offline) songs played through EqualizerEngine.
 ///
-/// We provide presets (Flat, Bass Boost, etc.) that set all 10 bands at once
-/// for common listening scenarios.
+/// We provide presets (Flat, Bass Boost, etc.) that set all 31 bands at
+/// once for common listening scenarios (authored at 10 anchor frequencies
+/// and interpolated onto the 31 ISO bands).
 ///
 /// WHAT IS "ObservableObject"?
 /// This is a protocol (a contract a type promises to follow) from SwiftUI's
@@ -58,11 +59,16 @@ class EqualizerManager: ObservableObject {
     /// The name of the currently active preset.
     @Published var activePreset: String = "Flat"
     
-    /// Individual band gains (in decibels) for the 10 frequency bands.
+    /// Individual band gains (in decibels) for the 31 frequency bands.
     /// Range: -12.0 to +12.0 dB. 0.0 = no change (flat).
-    @Published var bandGains: [Double] = Array(repeating: 0.0, count: 10)
+    @Published var bandGains: [Double] = Array(repeating: 0.0, count: 31)
 
-    /// User-saved custom presets: name → 10 band gains, e.g.
+    /// Preamp gain in decibels (-12 to +12), applied on top of the bands
+    /// via the EQ node's globalGain. The classic Winamp EQ has a preamp
+    /// slider on the far left; this is that slider's value.
+    @Published var preamp: Double = 0.0
+
+    /// User-saved custom presets: name → 31 band gains, e.g.
     /// `["Gym Mix": [8, 6, 4, ...]]`. Unlike the built-in `presets`
     /// dictionary (a `static let`, baked into the app), these are created
     /// by the user from whatever they've dialed in on the sliders and
@@ -77,37 +83,69 @@ class EqualizerManager: ObservableObject {
     /// AudioPlayer registers this to push the new gains into the live
     /// EqualizerEngine node, so changes apply while a song is playing.
     var onGainsChanged: (([Double]) -> Void)?
-    
+
+    /// Called whenever the preamp changes. AudioPlayer registers this to
+    /// push the value into the live EqualizerEngine's globalGain.
+    var onPreampChanged: ((Double) -> Void)?
+
     // MARK: - Frequency Band Definitions
-    
-    /// The center frequencies for each of the 10 EQ bands.
-    /// These are the standard frequencies used by most music players.
-    /// Each band controls a range around its center frequency.
+
+    /// The center frequencies for each of the 31 EQ bands.
+    /// These are the standard ISO 1/3-octave frequencies used by
+    /// professional 31-band graphic equalizers (20 Hz to 20 kHz).
     static let bandFrequencies: [Double] = [
-        32,      // Sub-bass, very low rumble (kick drums, bass guitar)
-        64,      // Bass, deep thump (bass guitar, kick drum body)
-        125,     // Low-mid bass, warmth (lower vocals, guitar body)
-        250,     // Mid, fullness (vocals, guitar, piano)
-        500,     // Low-mid treble, clarity (vocal articulation)
-        1000,    // Mid treble, presence (vocal brightness, snare)
-        2000,    // Upper-mid treble, definition (guitar picking, vocal edge)
-        4000,    // Treble, attack (cymbal crash, hi-hat attack)
-        8000,    // Upper treble, sparkle (cymbal shimmer, air)
-        16000    // Brilliance, ultra-high (harmonic overtones, air)
+        20, 25, 31.5, 40, 50, 63, 80, 100, 125, 160,
+        200, 250, 315, 400, 500, 630, 800, 1000, 1250, 1600,
+        2000, 2500, 3150, 4000, 5000, 6300, 8000, 10000, 12500, 16000,
+        20000
     ]
-    
+
     /// Human-readable labels for each frequency band.
     static let bandLabels: [String] = [
-        "32", "64", "125", "250", "500",
-        "1K", "2K", "4K", "8K", "16K"
+        "20", "25", "31", "40", "50", "63", "80", "100", "125", "160",
+        "200", "250", "315", "400", "500", "630", "800", "1K", "1.2K", "1.6K",
+        "2K", "2.5K", "3.1K", "4K", "5K", "6.3K", "8K", "10K", "12K", "16K",
+        "20K"
     ]
-    
+
+    /// The 10 anchor frequencies the preset curves below were authored at
+    /// (the classic 10-band layout). Preset anchor gains are interpolated
+    /// in log-frequency space onto the 31 ISO bands by `expandToFullBands`.
+    static let presetAnchorFrequencies: [Double] = [
+        32, 64, 125, 250, 500, 1000, 2000, 4000, 8000, 16000
+    ]
+
+    /// Interpolate a 10-anchor gain curve onto all 31 bands.
+    /// Frequencies below/above the anchor range clamp to the end anchors.
+    static func expandToFullBands(_ anchors: [Double]) -> [Double] {
+        guard anchors.count == presetAnchorFrequencies.count else {
+            return Array(repeating: 0.0, count: bandFrequencies.count)
+        }
+        return bandFrequencies.map { freq in
+            if freq <= presetAnchorFrequencies.first! {
+                return anchors.first!
+            }
+            if freq >= presetAnchorFrequencies.last! {
+                return anchors.last!
+            }
+            for i in 0..<(presetAnchorFrequencies.count - 1) {
+                let f0 = presetAnchorFrequencies[i]
+                let f1 = presetAnchorFrequencies[i + 1]
+                if freq >= f0 && freq <= f1 {
+                    let t = (log2(freq) - log2(f0)) / (log2(f1) - log2(f0))
+                    return anchors[i] + t * (anchors[i + 1] - anchors[i])
+                }
+            }
+            return 0.0
+        }
+    }
+
     // MARK: - Equalizer Presets
-    
-    /// Pre-configured EQ settings for common listening scenarios.
-    /// Each preset is an array of 10 gain values (one per frequency band).
+
+    /// Pre-configured EQ settings for common listening scenarios, stored
+    /// as 10 anchor gains and expanded to the full 31 bands on access.
     /// Values are in decibels: -12.0 to +12.0.
-    static let presets: [String: [Double]] = [
+    static let presetAnchors: [String: [Double]] = [
         // Flat, no change, all bands at 0 dB
         "Flat": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
         
@@ -144,6 +182,9 @@ class EqualizerManager: ObservableObject {
         // Loudness, boosts everything for low-volume listening
         "Loudness": [6, 4, 0, -2, 0, 0, -2, 2, 6, 8]
     ]
+
+    /// The built-in presets expanded onto all 31 bands.
+    static let presets: [String: [Double]] = presetAnchors.mapValues { expandToFullBands($0) }
     
     // MARK: - Initialization
     
@@ -165,7 +206,18 @@ class EqualizerManager: ObservableObject {
     /// - Parameter preset: The name of the preset (e.g. "Bass Boost" or a
     ///   user-created custom preset name)
     func applyPreset(_ preset: String) {
-        guard let gains = EqualizerManager.presets[preset] ?? customPresets[preset] else { return }
+        guard let raw = EqualizerManager.presets[preset] ?? customPresets[preset] else { return }
+
+        // Built-in presets and new custom presets already carry 31 gains;
+        // custom presets saved by older versions carry 10 and are expanded.
+        let gains: [Double]
+        if raw.count == EqualizerManager.bandFrequencies.count {
+            gains = raw
+        } else if raw.count == EqualizerManager.presetAnchorFrequencies.count {
+            gains = EqualizerManager.expandToFullBands(raw)
+        } else {
+            return
+        }
 
         activePreset = preset
         bandGains = gains
@@ -208,10 +260,10 @@ class EqualizerManager: ObservableObject {
     /// Set the gain for a specific frequency band.
     ///
     /// - Parameters:
-    ///   - band: Band index (0-9)
+    ///   - band: Band index (0-30)
     ///   - gain: Gain in decibels (-12.0 to +12.0)
     func setBand(_ band: Int, gain: Double) {
-        guard band >= 0 && band < 10 else { return }
+        guard band >= 0 && band < EqualizerManager.bandFrequencies.count else { return }
         
         // Clamp gain to valid range
         let clampedGain = min(max(gain, -12.0), 12.0)
@@ -224,18 +276,29 @@ class EqualizerManager: ObservableObject {
         saveSettings()
     }
     
+    /// Set the preamp gain in decibels (-12 to +12) and push it live.
+    func setPreamp(_ newValue: Double) {
+        preamp = min(max(newValue, -12.0), 12.0)
+        if isEnabled {
+            onPreampChanged?(preamp)
+        }
+        saveSettings()
+    }
+
     /// Toggle the equalizer on/off.
     func toggle() {
         isEnabled.toggle()
-        
+
         if isEnabled {
             applyGains()
+            onPreampChanged?(preamp)
         } else {
             // Reset all bands to flat when disabled
-            let flatGains = Array(repeating: 0.0, count: 10)
+            let flatGains = Array(repeating: 0.0, count: EqualizerManager.bandFrequencies.count)
             applyGainsToEQ(flatGains)
+            onPreampChanged?(0.0)
         }
-        
+
         saveSettings()
     }
     
@@ -263,16 +326,23 @@ class EqualizerManager: ObservableObject {
         UserDefaults.standard.set(isEnabled, forKey: "eqEnabled")
         UserDefaults.standard.set(activePreset, forKey: "eqPreset")
         UserDefaults.standard.set(bandGains, forKey: "eqBandGains")
+        UserDefaults.standard.set(preamp, forKey: "eqPreamp")
     }
-    
+
     /// Load equalizer settings from UserDefaults.
     private func loadSettings() {
         isEnabled = UserDefaults.standard.bool(forKey: "eqEnabled")
         activePreset = UserDefaults.standard.string(forKey: "eqPreset") ?? "Flat"
+        preamp = UserDefaults.standard.double(forKey: "eqPreamp")
 
-        if let savedGains = UserDefaults.standard.array(forKey: "eqBandGains") as? [Double],
-           savedGains.count == 10 {
-            bandGains = savedGains
+        if let savedGains = UserDefaults.standard.array(forKey: "eqBandGains") as? [Double] {
+            if savedGains.count == EqualizerManager.bandFrequencies.count {
+                bandGains = savedGains
+            } else if savedGains.count == EqualizerManager.presetAnchorFrequencies.count {
+                // Settings saved by the old 10-band version: expand the
+                // curve onto the 31 bands instead of discarding it.
+                bandGains = EqualizerManager.expandToFullBands(savedGains)
+            }
         }
     }
 

@@ -1,65 +1,50 @@
-// EqualizerView.swift, The equalizer screen where users can adjust audio frequencies and apply presets.
+// EqualizerView.swift, The Winamp-style equalizer window: preamp plus
+// 31 vertical band sliders (ISO 1/3-octave, 20 Hz – 20 kHz), preset
+// chips, and the user's own saved presets. Ronda 6 restyle: the logic
+// (EqualizerManager) is unchanged in spirit, only the band count grew
+// from 10 to 31 and the face went full Winamp.
 
-import SwiftUI // SwiftUI provides the declarative UI building blocks (View, VStack, Slider, etc.) used throughout this file
+import SwiftUI
 
-/// The equalizer screen where users adjust audio frequencies and select presets.
-///
-/// Shows a scrollable list of frequency band sliders and a grid of preset buttons.
-/// Each slider controls one frequency band (32Hz to 16KHz).
-/// Presets apply pre-configured settings for common listening scenarios.
-///
-/// NOTE ON STYLE: Rather than one huge `body` with everything nested inside, each visual
-/// section (power toggle, active preset label, frequency sliders, preset grid) is pulled
-/// out into its own small computed property below `body`. This is analogous to breaking a
-/// long function up into smaller, well-named helper functions, each piece is easier to
-/// read, and `body` itself reads like a short outline of the screen.
+/// LED green, matching the player face.
+private let eqGreen = Color(red: 0.16, green: 0.96, blue: 0.26)
+private let eqGreenDim = Color(red: 0.10, green: 0.55, blue: 0.16)
+private let eqLCD = Color(red: 0.02, green: 0.05, blue: 0.02)
+
 struct EqualizerView: View {
 
-    /// The equalizer manager, handles audio processing and settings.
-    /// `@EnvironmentObject` is a property wrapper (special `@`-prefixed syntax that adds
-    /// behavior to a property) that reads a shared class instance from the SwiftUI
-    /// environment instead of creating one locally. Because `EqualizerManager` publishes
-    /// its changes (via `@Published` properties), SwiftUI automatically redraws this view
-    /// whenever the manager's settings change, e.g. a slider moving.
     @EnvironmentObject var equalizer: EqualizerManager
-
-    /// Dismiss this modal. `@Environment(\.dismiss)` reads a built-in environment value:
-    /// a closure that closes whatever presented this view (typically a `.sheet`).
     @Environment(\.dismiss) var dismiss
 
-    /// Whether the "name this preset" alert (for saving the current band
-    /// gains as a new custom preset) is showing.
     @State private var showSavePresetAlert = false
-
-    /// The name typed into that alert's TextField.
     @State private var newPresetName = ""
 
-    /// The main view content, the required `body` computed property every `View` must
-    /// provide. SwiftUI calls it to figure out what to draw; this "declarative" style
-    /// means you describe *what* the UI should look like for the current data, not the
-    /// step-by-step instructions for updating it.
     var body: some View {
-        NavigationView { // Embeds content in a navigation controller with title bar
-            ScrollView { // Makes all content scrollable if it exceeds screen height
-                VStack(spacing: 24) { // Vertical stack; stacks each section top to bottom with 24pt gaps
+        NavigationView {
+            ScrollView {
+                VStack(spacing: 18) {
                     powerToggleSection
                     activePresetSection
-                    frequencyBandsSection
-                    presetsGridSection
+                    bandsSection
+                    presetsSection
+                    Text("The equalizer processes downloaded songs (the local playback path). Streamed songs play through AVPlayer, which iOS does not let apps equalize.")
+                        .font(.system(size: 10, design: .monospaced))
+                        .foregroundColor(eqGreenDim)
+                        .padding(.horizontal)
                 }
-                .padding(.vertical) // Top and bottom padding for the entire stack
+                .padding(.vertical)
             }
-            .navigationTitle("Equalizer") // Title displayed in the navigation bar
-            .navigationBarTitleDisplayMode(.inline) // Compact title (not large)
+            .background(Color(red: 0.07, green: 0.07, blue: 0.09))
+            .navigationTitle("Equalizer")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                // Done button in the top-right corner
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Done") {
-                        dismiss() // Close the equalizer view
+                        dismiss()
                     }
+                    .foregroundColor(eqGreen)
                 }
             }
-            // Alert for naming a new custom preset from the current sliders.
             .alert("Save Preset", isPresented: $showSavePresetAlert) {
                 TextField("Preset Name", text: $newPresetName)
                 Button("Save") {
@@ -73,193 +58,165 @@ struct EqualizerView: View {
                 Text("Save the current band settings as a named preset you can reuse later.")
             }
         }
+        .preferredColorScheme(.dark)
     }
 
     // MARK: - Sections
-    // "MARK:" comments create bookmarks in Xcode's navigator/minimap; they have no effect on behavior.
 
-    /// Master on/off switch for the equalizer.
+    /// Master on/off switch, Winamp's EQ "ON" button as a toggle.
     private var powerToggleSection: some View {
         HStack {
-            // "Equalizer" title label
-            Text("Equalizer")
-                .font(.title2) // Slightly smaller than title
-                .fontWeight(.bold) // Bold text
+            Text("WINAMP EQUALIZER")
+                .font(.system(size: 14, weight: .black, design: .monospaced))
+                .foregroundColor(eqGreen)
 
-            Spacer() // An invisible, flexible view that expands to fill space, pushing the toggle to the right
+            Spacer()
 
-            // Toggle switch, green when on, gray when off.
-            // `Binding` is a two-way connection to a value: it lets this `Toggle` both
-            // *read* the current state and *write* changes back, without the Toggle
-            // needing to own the data itself. Here we build a custom `Binding` manually
-            // (instead of using `$someState`) because turning the toggle on/off needs to
-            // run custom logic (`equalizer.toggle()`) rather than just overwriting a stored value.
             Toggle("", isOn: Binding(
-                // Read current enabled state from manager
                 get: { equalizer.isEnabled },
-                // When toggled, call the manager's toggle method.
-                // The `_` parameter name means "the new value SwiftUI would have set is
-                // intentionally ignored", we don't need it because `toggle()` flips the
-                // state itself.
                 set: { _ in equalizer.toggle() }
             ))
-            .labelsHidden() // Hide the empty label so no extra space appears
+            .labelsHidden()
+            .tint(eqGreen)
         }
-        .padding(.horizontal) // Side padding
+        .padding(.horizontal)
     }
 
-    /// Shows which preset is currently active.
+    /// Which preset is active right now.
     private var activePresetSection: some View {
         HStack {
-            // "Active:" label
-            Text("Active:")
-                .font(.subheadline) // Small font
-                .foregroundColor(.secondary) // Gray secondary color
+            Text("ACTIVE:")
+                .font(.system(size: 11, weight: .bold, design: .monospaced))
+                .foregroundColor(eqGreenDim)
 
-            // Name of the active preset
-            Text(equalizer.activePreset)
-                .font(.subheadline) // Small font
-                .fontWeight(.medium) // Medium weight (not bold, not light)
-                .foregroundColor(.blue) // Blue text to make it stand out
+            Text(equalizer.activePreset.uppercased())
+                .font(.system(size: 11, weight: .bold, design: .monospaced))
+                .foregroundColor(eqGreen)
 
-            Spacer() // Push content to the left
+            Spacer()
         }
-        .padding(.horizontal) // Side padding
+        .padding(.horizontal)
     }
 
-    /// 10 vertical sliders, one per frequency band. Each slider goes from -12dB to +12dB.
-    private var frequencyBandsSection: some View {
+    /// Preamp + the 31 band sliders in a horizontal scroll, like a real
+    /// 31-band graphic EQ rack: grab and slide sideways to reach 20 kHz.
+    private var bandsSection: some View {
         VStack(spacing: 8) {
-            // Section header
-            Text("Frequency Bands")
-                .font(.headline) // Bold section header
-                .frame(maxWidth: .infinity, alignment: .leading) // Stretch left
+            HStack {
+                Text("PREAMP + 31 BANDS")
+                    .font(.system(size: 11, weight: .black, design: .monospaced))
+                    .foregroundColor(eqGreen)
+                Spacer()
+                Text("◀ SLIDE ▶")
+                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+                    .foregroundColor(eqGreenDim)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
 
-            // Horizontal scroll of vertical sliders
-            ScrollView(.horizontal, showsIndicators: false) { // No scroll bar
-                HStack(spacing: 16) { // Horizontal row of band sliders
-                    // `0..<10` is a "range" literal meaning "0 up to but not including 10"
-                    // (10 values total). `ForEach` turns each value in the range into a
-                    // view; `id: \.self` tells it to use the Int itself as the unique
-                    // identifier, which works because each band index is distinct.
-                    ForEach(0..<10, id: \.self) { band in
-                        frequencyBandSlider(band: band)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    preampSlider
+                    Rectangle()
+                        .fill(eqGreenDim.opacity(0.5))
+                        .frame(width: 1, height: 190)
+                    ForEach(0..<EqualizerManager.bandFrequencies.count, id: \.self) { band in
+                        bandSlider(band: band)
                     }
                 }
-                .padding(.horizontal, 4) // Minimal side padding for the scroll
+                .padding(.horizontal, 4)
             }
         }
-        .padding(.horizontal) // Side padding
+        .padding(.horizontal)
+        .padding(.vertical, 10)
+        .background(eqLCD)
+        .overlay(Rectangle().stroke(Color.white.opacity(0.2), lineWidth: 1))
+        .padding(.horizontal, 8)
     }
 
-    /// A single vertical slider controlling one frequency band's gain.
-    /// - Parameter band: The index (0–9) of the frequency band this slider controls.
-    private func frequencyBandSlider(band: Int) -> some View {
-        VStack(spacing: 8) {
-            // Gain value display (e.g. "+4 dB")
+    /// The Winamp preamp slider (overall gain, -12 to +12 dB).
+    private var preampSlider: some View {
+        VStack(spacing: 6) {
+            Text("\(Int(equalizer.preamp))dB")
+                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                .foregroundColor(eqGreen)
+                .frame(width: 36)
+
+            WinampVSlider(value: Binding(
+                get: { equalizer.preamp },
+                set: { newValue in equalizer.setPreamp(newValue) }
+            ))
+
+            Text("PRE")
+                .font(.system(size: 9, weight: .black, design: .monospaced))
+                .foregroundColor(eqGreen)
+        }
+    }
+
+    /// One vertical band slider with its dB readout and frequency label.
+    private func bandSlider(band: Int) -> some View {
+        VStack(spacing: 6) {
             Text("\(Int(equalizer.bandGains[band]))dB")
-                .font(.caption2) // Very small font
-                .foregroundColor(.secondary) // Gray color
-                .frame(width: 40) // Fixed width for alignment
+                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                .foregroundColor(.white.opacity(0.6))
+                .frame(width: 36)
 
-            // Vertical slider for this band.
-            // Rotation effect makes it vertical (bottom to top).
-            VStack {
-                Slider(
-                    value: Binding(
-                        // Read current gain for this band
-                        get: { equalizer.bandGains[band] },
-                        // Update gain in the manager when user drags
-                        set: { newValue in
-                            equalizer.setBand(band, gain: newValue)
-                        }
-                    ),
-                    in: -12...12, // Range: -12dB to +12dB
-                    step: 1 // Snap to whole decibel values
-                )
-                .rotationEffect(.degrees(-90)) // Rotate horizontal slider to vertical
-                .frame(width: 120) // Width becomes height after rotation
-            }
-            .frame(height: 160) // Actual visible height of the slider
+            WinampVSlider(value: Binding(
+                get: { equalizer.bandGains[band] },
+                set: { newValue in equalizer.setBand(band, gain: newValue) }
+            ))
 
-            // Frequency label (e.g. "1K", "4K")
             Text(EqualizerManager.bandLabels[band])
-                .font(.caption2) // Very small font
-                .foregroundColor(.secondary) // Gray color
+                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                .foregroundColor(eqGreenDim)
         }
     }
 
-    /// Grid of preset buttons for quick EQ settings.
-    private var presetsGridSection: some View {
+    /// Preset chips: built-ins, the transient "Custom", and the user's
+    /// saved presets (long-press to delete), plus "Save Current".
+    private var presetsSection: some View {
         VStack(spacing: 12) {
-            // Section header + "Save Current" button, side by side.
             HStack {
-                Text("Presets")
-                    .font(.headline) // Bold section header
+                Text("PRESETS")
+                    .font(.system(size: 11, weight: .black, design: .monospaced))
+                    .foregroundColor(eqGreen)
 
                 Spacer()
 
-                // Lets the user name and persist whatever they've currently
-                // got dialed in on the sliders, previously the app's only
-                // "Custom" state was transient: switching presets, or
-                // relaunching the app, lost it with no way to get it back.
                 Button {
                     showSavePresetAlert = true
                 } label: {
                     Label("Save Current", systemImage: "plus.circle")
-                        .font(.subheadline)
+                        .font(.system(size: 11, weight: .bold, design: .monospaced))
+                        .foregroundColor(eqGreen)
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading) // Stretch left
+            .frame(maxWidth: .infinity, alignment: .leading)
 
-            // LazyVGrid creates a responsive grid.
-            // "Lazy" means rows are only created as they're about to become visible,
-            // which keeps large grids fast. `.flexible()` columns adapt to screen width;
-            // 3 columns = 3 buttons per row.
             LazyVGrid(
                 columns: [
-                    GridItem(.flexible()), // Column 1, flexible width
-                    GridItem(.flexible()), // Column 2, flexible width
-                    GridItem(.flexible())  // Column 3, flexible width
+                    GridItem(.flexible()),
+                    GridItem(.flexible()),
+                    GridItem(.flexible())
                 ],
-                spacing: 10 // Vertical spacing between rows
+                spacing: 10
             ) {
-                // "Custom" preset (only shown when user manually adjusts bands)
                 if equalizer.activePreset == "Custom" {
-                    PresetButton(
-                        name: "Custom", // Preset name
-                        isActive: true, // Always true in this branch, since the condition above already checked it's the active preset
-                        action: {} // No action needed, already on Custom, so tapping does nothing
-                    )
+                    PresetButton(name: "Custom", isActive: true, action: {})
                 }
 
-                // All built-in presets from the EqualizerManager presets dictionary.
-                // `EqualizerManager.presets.keys` gives the dictionary's keys (an
-                // unordered collection); `.sorted()` puts them in a stable, predictable
-                // (alphabetical) order so the grid doesn't reshuffle between app launches.
-                // `Array(...)` converts the sorted sequence into a concrete array that
-                // `ForEach` can iterate.
                 ForEach(Array(EqualizerManager.presets.keys.sorted()), id: \.self) { name in
                     PresetButton(
-                        name: name, // Preset name (e.g. "Bass Boost")
-                        isActive: equalizer.activePreset == name, // Highlight if active
-                        action: {
-                            equalizer.applyPreset(name) // Apply the selected preset
-                        }
+                        name: name,
+                        isActive: equalizer.activePreset == name,
+                        action: { equalizer.applyPreset(name) }
                     )
                 }
 
-                // The user's own named custom presets, sorted the same way
-                // as the built-in list above. Long-press (or on iPad,
-                // right-click) to delete, matches the standard iOS pattern
-                // for removing a saved item without a dedicated edit mode.
                 ForEach(Array(equalizer.customPresets.keys.sorted()), id: \.self) { name in
                     PresetButton(
                         name: name,
                         isActive: equalizer.activePreset == name,
-                        action: {
-                            equalizer.applyPreset(name)
-                        }
+                        action: { equalizer.applyPreset(name) }
                     )
                     .contextMenu {
                         Button(role: .destructive) {
@@ -271,49 +228,92 @@ struct EqualizerView: View {
                 }
             }
         }
-        .padding(.horizontal) // Side padding
+        .padding(.horizontal)
+    }
+}
+
+// MARK: - Winamp vertical slider
+
+/// A vertical -12…+12 dB fader with the classic EQ look: a thin colored
+/// track (green at the bottom, red at the top) and a chunky metal thumb.
+/// Dragging anywhere on the track moves the thumb to the finger.
+struct WinampVSlider: View {
+    @Binding var value: Double
+
+    private let trackHeight: CGFloat = 150
+    private let thumbHeight: CGFloat = 12
+
+    var body: some View {
+        GeometryReader { geo in
+            // Fraction 0 at -12 dB (bottom), 1 at +12 dB (top).
+            let fraction = (value + 12) / 24
+            let thumbY = (1 - fraction) * (geo.size.height - thumbHeight)
+
+            ZStack(alignment: .top) {
+                // Track
+                Rectangle()
+                    .fill(LinearGradient(
+                        colors: [Color(red: 0.98, green: 0.25, blue: 0.15),
+                                 Color(red: 0.98, green: 0.85, blue: 0.20),
+                                 eqGreen],
+                        startPoint: .top, endPoint: .bottom))
+                    .frame(width: 4, height: geo.size.height)
+                    .frame(maxWidth: .infinity)
+
+                // Center (0 dB) tick
+                Rectangle()
+                    .fill(Color.white.opacity(0.5))
+                    .frame(width: 14, height: 1)
+                    .frame(maxWidth: .infinity)
+                    .offset(y: geo.size.height / 2)
+
+                // Thumb
+                Rectangle()
+                    .fill(LinearGradient(colors: [Color(white: 0.55), Color(white: 0.25)],
+                                         startPoint: .top, endPoint: .bottom))
+                    .frame(width: 26, height: thumbHeight)
+                    .overlay(Rectangle().stroke(Color.black, lineWidth: 1))
+                    .frame(maxWidth: .infinity)
+                    .offset(y: thumbY)
+            }
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { drag in
+                        let f = 1 - min(max(drag.location.y / geo.size.height, 0), 1)
+                        value = -12 + f * 24
+                    }
+            )
+        }
+        .frame(width: 30, height: trackHeight)
     }
 }
 
 // MARK: - Preset Button
 
-/// A single preset button in the equalizer grid.
-///
-/// Shows the preset name with a highlight when active.
-/// Tapping it applies that preset to all frequency bands.
+/// A single preset chip: black with a green border, filled green when
+/// it is the active preset.
 struct PresetButton: View {
 
-    /// The preset name (e.g. "Bass Boost", "Rock")
     let name: String
-
-    /// Whether this preset is currently active
     let isActive: Bool
-
-    /// Called when the button is tapped.
-    /// `() -> Void` is a function type: "a closure that takes no arguments and returns
-    /// nothing." Storing a closure as a property like this lets the parent view decide
-    /// exactly what should happen on tap, while `PresetButton` itself only cares about
-    /// *how it looks*, not *what it does*, a common pattern for reusable components.
     let action: () -> Void
 
-    /// The button's appearance and behavior.
     var body: some View {
-        Button(action: action) { // When tapped, run the provided action
-            Text(name) // Display the preset name
-                .font(.subheadline) // Small font
-                .fontWeight(isActive ? .bold : .regular) // Bold when active, normal otherwise
-                .frame(maxWidth: .infinity) // Stretch to fill available width
-                .padding(.vertical, 10) // Top and bottom padding inside the button
-                // Blue background when active, gray when not
-                .background(isActive ? Color.blue : Color(.systemGray5))
-                .foregroundColor(isActive ? .white : .primary) // White text on blue, dark on gray
-                .cornerRadius(10) // Rounded corners
+        Button(action: action) {
+            Text(name.uppercased())
+                .font(.system(size: 11, weight: .black, design: .monospaced))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .background(isActive ? eqGreen : Color.black.opacity(0.55))
+                .foregroundColor(isActive ? .black : eqGreen)
+                .overlay(Rectangle().stroke(eqGreen.opacity(0.55), lineWidth: 1))
         }
-        .buttonStyle(.plain) // Prevents default button styling (blue tint, etc.)
+        .buttonStyle(.plain)
     }
 }
 
 #Preview {
     EqualizerView()
-        .environmentObject(EqualizerManager()) // Provide a mock EqualizerManager for preview
+        .environmentObject(EqualizerManager())
 }
