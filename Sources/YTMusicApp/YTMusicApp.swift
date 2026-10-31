@@ -59,6 +59,7 @@ struct YTMusicApp: App {
 
     /// Set up the shared managers for AudioPlayer to access.
     init() {
+        OfflineManager.shared = offlineManager
         PlayCountManager.shared = playCountManager
         // The audio player checks EqualizerManager.shared to decide whether
         // to route local playback through the equalizer engine.

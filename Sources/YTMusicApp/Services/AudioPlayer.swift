@@ -348,8 +348,23 @@ class AudioPlayer: ObservableObject {
         // Replace the queue with just this song and start playing
         queue = [song]
         currentIndex = 0
-        
+
         await playSong(song)
+
+        // Keep a copy on the phone for offline listening (best
+        // effort): the song service file is stored locally, so the
+        // song keeps playing later with no connection at all.
+        if let offline = OfflineManager.shared, !offline.isDownloaded(videoId) {
+            Task {
+                await offline.download(
+                    videoId: videoId,
+                    title: title,
+                    artist: artist,
+                    audioUrl: audioUrl,
+                    thumbnailUrl: thumbnailUrl
+                )
+            }
+        }
     }
     
     /// Play a song from a local file (cached/downloaded).

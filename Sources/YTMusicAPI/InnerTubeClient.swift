@@ -145,6 +145,18 @@ class InnerTubeClient {
     }
     
     // MARK: - Player
+
+    /// The home song service: it downloads complete songs with
+    /// yt-dlp and serves the finished files. YouTube caps anonymous
+    /// media delivery at 1 MB, so every play and download in this
+    /// app goes through this service instead of a direct stream URL.
+    enum SongService {
+        static let baseURL = "https://colours-extended-speak-configuration.trycloudflare.com"
+        static let key = "f71b5e9d7eb2033ee60456ba82fb49670db3d6a38219e87b"
+        static func url(for videoId: String) -> String {
+            "\(baseURL)/song/\(videoId)?key=\(key)"
+        }
+    }
     
     /// Get streaming URLs for a video/song
     /// - Parameters:
@@ -152,48 +164,66 @@ class InnerTubeClient {
     ///   - quality: Audio quality preference ("low", "medium", "high", or "auto" for best)
     /// - Returns: Player info including stream URLs and video details
     func getPlayer(videoId: String, quality: String = "high") async throws -> PlayerInfo {
-        // Try IOS client first (best for audio)
-        do {
-            return try await getPlayerWithClient(videoId: videoId, client: iosClient, quality: quality)
-        } catch {
-            // If IOS fails, try TV client as fallback
-            print("IOS client failed, trying TV client: \(error)")
-            return try await getPlayerWithClient(videoId: videoId, client: tvClient, quality: quality)
-        }
-    }
-    
-    /// Get player info with a specific client
-    private func getPlayerWithClient(videoId: String, client: YouTubeClient, quality: String = "high") async throws -> PlayerInfo {
-        do {
-            return try await playerAttempt(videoId: videoId, client: client, quality: quality, bypassTokenCache: false)
-        } catch let InnerTubeError.videoUnplayable(reason) where reason.localizedCaseInsensitiveContains("bot") {
-            // "Sign in to confirm you're not a bot": one retry with a
-            // freshly minted PO token before giving up on this
-            // client (the caller then falls back to the TV client).
-            return try await playerAttempt(videoId: videoId, client: client, quality: quality, bypassTokenCache: true)
-        }
-    }
+        // Metadata only: the playable URL always comes from the home
+        // song service (see SongService). The /player response is used
+        // solely for its videoDetails (title, artist, duration,
+        // thumbnail) and is parsed leniently \u2014 a bot-walled or
+        // format-less response no longer fails playback.
+        var title = ""
+        var artist = ""
+        var thumbnailUrl = ""
+        var duration = 0
+        var viewCount = ""
 
-    /// One player request, carrying a PO token from the home token
-    /// provider when one is available (see PoTokenManager).
-    private func playerAttempt(videoId: String, client: YouTubeClient, quality: String, bypassTokenCache: Bool) async throws -> PlayerInfo {
-        let token = await PoTokenManager.shared.token(for: videoId, bypassCache: bypassTokenCache)
-
-        let body = PlayerBody(
-            context: client.toContext(visitorData: visitorData),
-            videoId: videoId,
-            serviceIntegrityDimensions: token.map { ServiceIntegrityDimensions(poToken: $0) }
-        )
-
-        let response: PlayerResponse = try await POST(
+        if let response: PlayerResponse = try? await POST(
             endpoint: "/player",
-            client: client,
-            body: body
-        )
+            client: iosClient,
+            body: PlayerBody(context: iosClient.toContext(visitorData: visitorData), videoId: videoId)
+        ), let details = response.videoDetails {
+            title = details.title
+            artist = details.author
+            thumbnailUrl = details.thumbnail?.thumbnails?.last?.url ?? ""
+            duration = Int(details.lengthSeconds) ?? 0
+            viewCount = details.viewCount
+        }
 
-        return try parsePlayerInfo(from: response, quality: quality)
+        if title.isEmpty, let meta = await oEmbedMetadata(videoId: videoId) {
+            title = meta.title
+            artist = meta.author
+            if thumbnailUrl.isEmpty { thumbnailUrl = meta.thumbnail }
+        }
+
+        return PlayerInfo(
+            videoId: videoId,
+            title: title,
+            artist: artist,
+            thumbnailUrl: thumbnailUrl,
+            duration: duration,
+            audioUrl: SongService.url(for: videoId),
+            audioQuality: "High",
+            viewCount: viewCount
+        )
     }
-    
+
+    /// Title, author and thumbnail from YouTube's public oEmbed
+    /// endpoint (no key, no bot wall), as a metadata fallback.
+    private func oEmbedMetadata(videoId: String) async -> (title: String, author: String, thumbnail: String)? {
+        guard let url = URL(string: "https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=\(videoId)&format=json") else { return nil }
+        struct OEmbed: Decodable {
+            let title: String?
+            let author_name: String?
+            let thumbnail_url: String?
+        }
+        do {
+            let (data, _) = try await URLSession.shared.data(from: url)
+            let decoded = try JSONDecoder().decode(OEmbed.self, from: data)
+            guard let t = decoded.title else { return nil }
+            return (t, decoded.author_name ?? "", decoded.thumbnail_url ?? "")
+        } catch {
+            return nil
+        }
+    }
+
     // MARK: - Browse (Home, Trending, etc.)
     
     /// Browse a YouTube Music page (home, trending, charts, etc.)
@@ -1002,16 +1032,8 @@ struct SearchBody: Codable {
 struct PlayerBody: Codable {
     let context: InnerTubeContext
     let videoId: String
-    /// Proof-of-origin token (see PoTokenManager). Without it,
-    /// YouTube answers anonymous player requests with
-    /// LOGIN_REQUIRED ("Sign in to confirm you're not a bot").
-    let serviceIntegrityDimensions: ServiceIntegrityDimensions?
 }
 
-/// The poToken container YouTube expects in player requests.
-struct ServiceIntegrityDimensions: Codable {
-    let poToken: String
-}
 
 /// Request body for browse
 struct BrowseBody: Codable {

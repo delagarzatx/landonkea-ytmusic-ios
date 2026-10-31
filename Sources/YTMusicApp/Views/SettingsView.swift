@@ -62,7 +62,7 @@ struct SettingsView: View {
     @AppStorage("crossfadeDuration") private var crossfadeDuration = 5.0
 
     /// Whether to only download songs over Wi-Fi.
-    @AppStorage("downloadOverWifiOnly") private var downloadOverWifiOnly = true
+    @AppStorage("downloadOverWifiOnly") private var downloadOverWifiOnly = false
 
     /// Font size scale factor (0 = small, 1 = medium, 2 = large).
     /// Applied globally via a custom view modifier in ContentView.

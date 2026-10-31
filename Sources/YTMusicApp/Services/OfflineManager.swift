@@ -28,6 +28,10 @@ import Network          // NWPathMonitor, used to enforce "Wi-Fi Only" downloads
 /// - Storage is limited by the device's available space
 @MainActor
 class OfflineManager: NSObject, ObservableObject {
+    /// The app-wide instance, wired in YTMusicApp.init (same
+    /// pattern as the other managers) so AudioPlayer can save a
+    /// local copy of whatever it plays.
+    static var shared: OfflineManager?
     
     // MARK: - Published Properties
     
@@ -175,6 +179,8 @@ class OfflineManager: NSObject, ObservableObject {
         let config = URLSessionConfiguration.background(withIdentifier: "com.landonkea.ytmusic.downloads")
         config.isDiscretionary = false  // Download immediately, not when the system decides
         config.shouldUseExtendedBackgroundIdleMode = true  // Keep network alive longer
+        config.timeoutIntervalForRequest = 600    // The song service can take minutes to fetch an uncached song
+        config.timeoutIntervalForResource = 7200  // Allow up to two hours for a full download
 
         // `delegateQueue: nil` tells URLSession to create its own private
         // background queue for delegate callbacks (progress, completion,
@@ -255,7 +261,7 @@ class OfflineManager: NSObject, ObservableObject {
         // true` means the *intended* default is "on", a user who never
         // opens Settings should still get Wi-Fi-only protection by default,
         // not silently download over cellular.
-        let wifiOnly = (UserDefaults.standard.object(forKey: "downloadOverWifiOnly") as? Bool) ?? true
+        let wifiOnly = (UserDefaults.standard.object(forKey: "downloadOverWifiOnly") as? Bool) ?? false
         if wifiOnly && !isOnWifi {
             wifiOnlyBlockedMessage = "\"\(title)\" wasn't downloaded because Wi-Fi Only is enabled in Settings and you're not connected to Wi-Fi."
             return
