@@ -115,13 +115,13 @@ class InnerTubeClient {
         let params: String?
         switch filter {
         case "songs":
-            params = "EgIQAw=="      // Songs filter
+            params = "EgWKAQIIAWoMEA4QChADEAQQCRAF"      // Songs filter
         case "videos":
-            params = "EgIQBA=="      // Videos filter
+            params = "EgWKAQIQAWoMEA4QChADEAQQCRAF"      // Videos filter
         case "albums":
-            params = "EgIQAg=="      // Albums filter
+            params = "EgWKAQIYAWoMEA4QChADEAQQCRAF"      // Albums filter
         case "artists":
-            params = "EgIIAQ=="      // Artists filter
+            params = "EgWKAQIgAWoMEA4QChADEAQQCRAF"      // Artists filter
         default:
             params = nil              // No filter, show all results
         }
@@ -681,10 +681,15 @@ class InnerTubeClient {
             return results
         }
         
-        // Look for music shelves (lists of songs)
+        // Collect items from every section shape YouTube uses today:
+        // music shelves, plain item sections, and the top-result card shelf.
         for section in tabContent {
-            if let shelf = section.musicShelfRenderer,
-               let items = shelf.contents {
+            let itemGroups: [[MusicItem]?] = [
+                section.musicShelfRenderer?.contents,
+                section.itemSectionRenderer?.contents,
+                section.musicCardShelfRenderer?.contents
+            ]
+            for case let items? in itemGroups {
                 for item in items {
                     if let renderer = item.musicResponsiveListItemRenderer {
                         if let result = parseSearchItem(renderer) {
@@ -700,8 +705,15 @@ class InnerTubeClient {
     
     /// Parse a single search item
     private func parseSearchItem(_ renderer: MusicResponsiveListItemRenderer) -> SearchResult? {
-        // Get the video ID from navigation endpoint
-        guard let videoId = renderer.navigationEndpoint?.watchEndpoint?.videoId else {
+        // Get the video ID. Current responses no longer put a watch
+        // endpoint at the item level for songs: the ID now arrives in
+        // playlistItemData, in the overlay play button, or in the
+        // title run's endpoint. Try every known location.
+        let videoId = renderer.navigationEndpoint?.watchEndpoint?.videoId
+            ?? renderer.playlistItemData?.videoId
+            ?? renderer.overlay?.musicItemThumbnailOverlayRenderer?.content?.musicPlayButtonRenderer?.playNavigationEndpoint?.watchEndpoint?.videoId
+            ?? renderer.flexColumns?.first?.musicResponsiveListItemFlexColumnRenderer?.text?.runs?.first?.navigationEndpoint?.watchEndpoint?.videoId
+        guard let videoId = videoId else {
             return nil
         }
         

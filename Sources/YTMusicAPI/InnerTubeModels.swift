@@ -121,6 +121,18 @@ struct SectionListRenderer: Codable {
 struct SectionContent: Codable {
     let musicShelfRenderer: MusicShelfRenderer?
     let musicCarouselShelfRenderer: MusicCarouselShelfRenderer?
+    let itemSectionRenderer: ItemSectionRenderer?
+    let musicCardShelfRenderer: MusicCardShelfRenderer?
+}
+
+/// A plain item section (current search responses group results this way)
+struct ItemSectionRenderer: Codable {
+    let contents: [MusicItem]?
+}
+
+/// The "top result" card shelf (first section of unfiltered search)
+struct MusicCardShelfRenderer: Codable {
+    let contents: [MusicItem]?
 }
 
 /// A shelf/section of music items
@@ -140,6 +152,13 @@ struct MusicResponsiveListItemRenderer: Codable {
     let thumbnail: ThumbnailContainer?
     let overlay: ItemOverlay?
     let navigationEndpoint: NavigationEndpoint?
+    let playlistItemData: PlaylistItemData?
+}
+
+/// Per-item playback data (current responses carry the videoId here —
+/// the item-level navigationEndpoint is no longer sent for songs)
+struct PlaylistItemData: Codable {
+    let videoId: String?
 }
 
 /// A flexible column in the list item layout
@@ -169,6 +188,7 @@ struct TextRun: Codable {
 /// A single segment of text
 struct Run: Codable {
     let text: String
+    let navigationEndpoint: NavigationEndpoint?
 }
 
 // MARK: - Navigation
@@ -226,6 +246,13 @@ struct MusicItemThumbnailOverlayRenderer: Codable {
 /// What's in the overlay
 struct OverlayContent: Codable {
     let musicResponsiveListItemOverlayLayout: OverlayLayout?
+    let musicPlayButtonRenderer: MusicPlayButtonRenderer?
+}
+
+/// The overlay play button (its endpoint carries the videoId in
+/// current responses)
+struct MusicPlayButtonRenderer: Codable {
+    let playNavigationEndpoint: NavigationEndpoint?
 }
 
 /// Layout of the overlay
