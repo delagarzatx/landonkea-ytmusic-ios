@@ -76,6 +76,33 @@ struct ContentView: View {
                         Label("Settings", systemImage: "gearshape.fill")
                     }
             }
+            // The mini player lives in the TabView's bottom safe-area
+            // inset so it docks directly ABOVE the tab bar instead of
+            // floating over it (as a ZStack sibling it covered the bar).
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                if audioPlayer.currentSong != nil {
+                    MiniPlayer()
+                        // .transition defines how this view appears/disappears.
+                        // .move(edge: .bottom) = slides up from the bottom when appearing,
+                        // slides down when disappearing.
+                        .transition(.move(edge: .bottom))
+                        // Tap gesture on the mini player opens the full-screen player
+                        .onTapGesture {
+                            showFullPlayer = true
+                        }
+                        // Swipe up on mini player to show queue
+                        .gesture(
+                            DragGesture(minimumDistance: 20)
+                                .onEnded { value in
+                                    // If the user swiped UP (negative vertical translation),
+                                    // show the queue sheet
+                                    if value.translation.height < -40 {
+                                        showQueue = true
+                                    }
+                                }
+                        )
+                }
+            }
             // NOTE: iPad/Mac keyboard shortcuts for playback control are
             // implemented below via hidden Buttons + .keyboardShortcut
             // (search "Space = Play/Pause"). That's the one working
@@ -86,35 +113,9 @@ struct ContentView: View {
             // togglePlayPause(), which meant it silently swallowed the
             // space key instead of pausing/playing. Both were removed.
 
-            // ── MINI PLAYER ────────────────────────────────────────
-            // The mini player shows at the bottom when a song is playing.
-            // It's in a ZStack (not inside the TabView) so it floats
-            // on top of all tabs, not just one.
-            //
-            // `if let` checks if a song is playing. If currentSong is nil,
-            // the mini player is hidden (not just empty, completely removed).
-            if audioPlayer.currentSong != nil {
-                MiniPlayer()
-                    // .transition defines how this view appears/disappears.
-                    // .move(edge: .bottom) = slides up from the bottom when appearing,
-                    // slides down when disappearing.
-                    .transition(.move(edge: .bottom))
-                    // Tap gesture on the mini player opens the full-screen player
-                    .onTapGesture {
-                        showFullPlayer = true
-                    }
-                    // Swipe up on mini player to show queue
-                    .gesture(
-                        DragGesture(minimumDistance: 20)
-                            .onEnded { value in
-                                // If the user swiped UP (negative vertical translation),
-                                // show the queue sheet
-                                if value.translation.height < -40 {
-                                    showQueue = true
-                                }
-                            }
-                    )
-            }
+            // The mini player moved into the TabView's bottom
+            // safe-area inset (see above) so it no longer covers
+            // the tab bar.
         }
         // .fullScreenCover = presents a view that covers the ENTIRE screen
         // (including the status bar). Unlike .sheet, it can't be swiped down

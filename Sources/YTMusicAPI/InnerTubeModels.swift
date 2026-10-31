@@ -221,6 +221,12 @@ struct ThumbnailContainer: Codable {
 
 /// The actual thumbnail with its images
 struct MusicThumbnailRenderer: Codable {
+    let thumbnail: ThumbnailList?
+}
+
+/// The thumbnail set nested inside musicThumbnailRenderer
+/// (the API nests it one level down: musicThumbnailRenderer.thumbnail.thumbnails)
+struct ThumbnailList: Codable {
     let thumbnails: [Thumbnail]?
 }
 

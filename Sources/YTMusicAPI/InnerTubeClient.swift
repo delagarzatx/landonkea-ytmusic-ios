@@ -291,12 +291,12 @@ class InnerTubeClient {
         
         if let immersiveHeader = response.header?.musicImmersiveHeaderRenderer {
             name = immersiveHeader.title?.text ?? "Unknown Artist"
-            thumbnailUrl = immersiveHeader.thumbnail?.musicThumbnailRenderer?.thumbnails?.last?.url ?? ""
+            thumbnailUrl = immersiveHeader.thumbnail?.musicThumbnailRenderer?.thumbnail?.thumbnails?.last?.url ?? ""
             subscriberCount = immersiveHeader.subtitle?.text
             description = immersiveHeader.description?.text
         } else if let visualHeader = response.header?.musicVisualHeaderRenderer {
             name = visualHeader.title?.text ?? "Unknown Artist"
-            thumbnailUrl = visualHeader.thumbnail?.musicThumbnailRenderer?.thumbnails?.last?.url ?? ""
+            thumbnailUrl = visualHeader.thumbnail?.musicThumbnailRenderer?.thumbnail?.thumbnails?.last?.url ?? ""
             subscriberCount = nil
             description = nil
         } else {
@@ -431,7 +431,7 @@ class InnerTubeClient {
                 trackCount = count
             }
             
-            thumbnailUrl = playlistHeader.thumbnail?.musicThumbnailRenderer?.thumbnails?.last?.url ?? ""
+            thumbnailUrl = playlistHeader.thumbnail?.musicThumbnailRenderer?.thumbnail?.thumbnails?.last?.url ?? ""
             
             // If header has song count, use it
             if let countText = playlistHeader.songCount?.text {
@@ -441,7 +441,7 @@ class InnerTubeClient {
         } else if let detailHeader = response.header?.musicDetailHeaderRenderer {
             title = detailHeader.title?.text ?? "Unknown Album"
             artist = detailHeader.subtitle?.text ?? "Unknown Artist"
-            thumbnailUrl = detailHeader.thumbnail?.musicThumbnailRenderer?.thumbnails?.last?.url ?? ""
+            thumbnailUrl = detailHeader.thumbnail?.musicThumbnailRenderer?.thumbnail?.thumbnails?.last?.url ?? ""
         } else {
             title = "Unknown Album"
             artist = "Unknown Artist"
@@ -724,7 +724,7 @@ class InnerTubeClient {
         let artist = renderer.flexColumns?.dropFirst().first?.musicResponsiveListItemFlexColumnRenderer?.text?.text ?? "Unknown Artist"
         
         // Get thumbnail URL
-        let thumbnailUrl = renderer.thumbnail?.musicThumbnailRenderer?.thumbnails?.last?.url ?? ""
+        let thumbnailUrl = renderer.thumbnail?.musicThumbnailRenderer?.thumbnail?.thumbnails?.last?.url ?? ""
         
         // Get duration from overlay
         let duration = renderer.overlay?.musicItemThumbnailOverlayRenderer?.content?.musicResponsiveListItemOverlayLayout?.musicDurationText?.text
@@ -768,30 +768,38 @@ class InnerTubeClient {
             throw InnerTubeError.noAudioStream
         }
         
+        // AVPlayer cannot decode webm/opus streams, and YouTube often
+        // serves opus at the HIGHEST bitrate — selecting by bitrate
+        // alone picks an unplayable stream and playback silently never
+        // starts. Restrict the selection pool to mp4/AAC streams
+        // whenever one exists.
+        let playableStreams = audioStreams.filter { $0.mimeType.contains("audio/mp4") }
+        let selectionPool = playableStreams.isEmpty ? audioStreams : playableStreams
+        
         // Select the best audio stream based on quality preference
         let selectedAudio: StreamFormat
         
         switch quality {
         case "low":
             // Pick the lowest bitrate that's at least 48kbps (avoid extremely low quality)
-            selectedAudio = audioStreams
+            selectedAudio = selectionPool
                 .filter { $0.bitrate >= 48000 }
                 .min(by: { $0.bitrate < $1.bitrate })
-                ?? audioStreams.min(by: { $0.bitrate < $1.bitrate })!
+                ?? selectionPool.min(by: { $0.bitrate < $1.bitrate })!
             
         case "medium":
             // Pick the stream closest to 128kbps
-            selectedAudio = audioStreams
+            selectedAudio = selectionPool
                 .min(by: { abs($0.bitrate - 128000) < abs($1.bitrate - 128000) })!
             
         case "high":
             // Pick the highest bitrate (best quality)
-            selectedAudio = audioStreams
+            selectedAudio = selectionPool
                 .max(by: { $0.bitrate < $1.bitrate })!
             
         default:
             // "auto" or any unknown value, pick highest bitrate
-            selectedAudio = audioStreams
+            selectedAudio = selectionPool
                 .max(by: { $0.bitrate < $1.bitrate })!
         }
         
@@ -842,7 +850,7 @@ class InnerTubeClient {
                     // Extract video ID from navigation endpoint
                     let videoId = renderer.navigationEndpoint?.watchEndpoint?.videoId ?? ""
                     // Extract thumbnail via the thumbnailRenderer path
-                    let thumbnail = renderer.thumbnailRenderer?.musicThumbnailRenderer?.thumbnails?.first?.url ?? ""
+                    let thumbnail = renderer.thumbnailRenderer?.musicThumbnailRenderer?.thumbnail?.thumbnails?.first?.url ?? ""
                     
                     results.append(SearchResult(
                         id: videoId,
@@ -879,7 +887,7 @@ class InnerTubeClient {
                     if let twoRow = item.musicTwoRowItemRenderer {
                         let itemTitle = twoRow.title?.text ?? ""
                         let subtitle = twoRow.subtitle?.text ?? ""
-                        let thumbUrl = twoRow.thumbnailRenderer?.musicThumbnailRenderer?.thumbnails?.last?.url ?? ""
+                        let thumbUrl = twoRow.thumbnailRenderer?.musicThumbnailRenderer?.thumbnail?.thumbnails?.last?.url ?? ""
                         let browseId = twoRow.navigationEndpoint?.browseEndpoint?.browseId
                         let videoId = twoRow.navigationEndpoint?.watchEndpoint?.videoId
                         

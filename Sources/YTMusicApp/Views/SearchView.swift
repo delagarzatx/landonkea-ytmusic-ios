@@ -678,7 +678,7 @@ struct SearchResultsList: View {
     /// (fairly long) context menu definition isn't nested three levels deep.
     @ViewBuilder
     private func resultRow(for result: SearchResult) -> some View {
-        SearchResultRow(result: result)
+        SearchResultRow(result: result, moreMenuContent: AnyView(contextMenuContent(for: result)))
             .onTapGesture {
                 // Tap = play this song immediately
                 playResult(result)
@@ -871,6 +871,11 @@ struct SearchResultRow: View {
     /// The search result data to display
     let result: SearchResult
 
+    /// Menu content for the visible "…" button, supplied by the list
+    /// (the same actions as the row's long-press context menu).
+    /// When nil, the button falls back to an inert placeholder.
+    var moreMenuContent: AnyView? = nil
+
     var body: some View {
         HStack(spacing: 12) {
             thumbnail
@@ -927,13 +932,26 @@ struct SearchResultRow: View {
         }
     }
 
-    /// "More" button (currently a placeholder, tapping does nothing.
-    /// The context menu is applied to the entire row in SearchResultsList.)
+    /// "More" button. When the list supplies menu content it opens
+    /// that menu (same actions as the long-press context menu);
+    /// otherwise it stays an inert placeholder.
     private var moreButton: some View {
-        Button(action: {}) {
-            Image(systemName: "ellipsis")
-                .foregroundColor(.secondary)
-                .frame(width: 30, height: 30)
+        Group {
+            if let moreMenuContent {
+                Menu {
+                    moreMenuContent
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .foregroundColor(.secondary)
+                        .frame(width: 30, height: 30)
+                }
+            } else {
+                Button(action: {}) {
+                    Image(systemName: "ellipsis")
+                        .foregroundColor(.secondary)
+                        .frame(width: 30, height: 30)
+                }
+            }
         }
     }
 }
