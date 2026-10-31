@@ -37,6 +37,11 @@ class AudioPlayer: ObservableObject {
     /// Current playback state: .stopped, .loading, .playing, or .paused.
     /// The UI uses this to show play vs pause icons.
     @Published var state: PlayerState = .stopped
+
+    /// Last playback failure, shown to the user as an alert instead
+    /// of the old behavior: the UI sat at "playing" in silence when
+    /// the stream turned out to be an error page.
+    @Published var playbackError: String?
     
     /// Current playback position in seconds (e.g. 45.5 = 45.5 seconds into the song).
     /// Updated every 0.5 seconds by the time observer.
@@ -639,6 +644,16 @@ class AudioPlayer: ObservableObject {
                 // time mid-crossfade. Only the player currently assigned
                 // to self.player is allowed to update shared state.
                 guard player === self.player else { return }
+
+                // Surface stream failures instead of sitting at
+                // "playing" in silence: when the item fails (for
+                // example YouTube served an error page instead of
+                // audio), stop and report the error to the user.
+                if let item = player.currentItem, item.status == .failed, self.playbackError == nil {
+                    self.playbackError = item.error?.localizedDescription ?? "The stream could not be played."
+                    player.pause()
+                    self.state = .stopped
+                }
 
                 // Update the current playback position
                 self.currentTime = time.seconds

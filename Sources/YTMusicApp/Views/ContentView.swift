@@ -25,6 +25,10 @@ struct ContentView: View {
     /// so this is caught once at the root instead of in every view).
     @EnvironmentObject var offlineManager: OfflineManager
 
+    /// YouTube session (sign-in state), shared singleton observed
+    /// directly: drives the sign-in sheet below.
+    @ObservedObject private var youtubeSession = YouTubeSessionManager.shared
+
     /// Controls whether the full-screen player is shown.
     /// @State = owned by this view. When it changes, the view re-renders.
     @State private var showFullPlayer = false
@@ -37,7 +41,7 @@ struct ContentView: View {
         // `.alignment: .bottom` = when child views are different sizes,
         // align them to the bottom edge. This ensures the mini player
         // stays at the bottom of the screen.
-        ZStack(alignment: .bottom) {
+        VStack(spacing: 0) {
             
             // ── TAB BAR ────────────────────────────────────────────
             // TabView creates the standard iOS bottom tab bar.
@@ -76,33 +80,6 @@ struct ContentView: View {
                         Label("Settings", systemImage: "gearshape.fill")
                     }
             }
-            // The mini player lives in the TabView's bottom safe-area
-            // inset so it docks directly ABOVE the tab bar instead of
-            // floating over it (as a ZStack sibling it covered the bar).
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                if audioPlayer.currentSong != nil {
-                    MiniPlayer()
-                        // .transition defines how this view appears/disappears.
-                        // .move(edge: .bottom) = slides up from the bottom when appearing,
-                        // slides down when disappearing.
-                        .transition(.move(edge: .bottom))
-                        // Tap gesture on the mini player opens the full-screen player
-                        .onTapGesture {
-                            showFullPlayer = true
-                        }
-                        // Swipe up on mini player to show queue
-                        .gesture(
-                            DragGesture(minimumDistance: 20)
-                                .onEnded { value in
-                                    // If the user swiped UP (negative vertical translation),
-                                    // show the queue sheet
-                                    if value.translation.height < -40 {
-                                        showQueue = true
-                                    }
-                                }
-                        )
-                }
-            }
             // NOTE: iPad/Mac keyboard shortcuts for playback control are
             // implemented below via hidden Buttons + .keyboardShortcut
             // (search "Space = Play/Pause"). That's the one working
@@ -113,9 +90,33 @@ struct ContentView: View {
             // togglePlayPause(), which meant it silently swallowed the
             // space key instead of pausing/playing. Both were removed.
 
-            // The mini player moved into the TabView's bottom
-            // safe-area inset (see above) so it no longer covers
-            // the tab bar.
+            // ── MINI PLAYER ────────────────────────────────────────
+            // A sibling BELOW the TabView in this VStack: the tab
+            // bar shrinks to make room, so the mini player can never
+            // cover the navigation buttons (the floating ZStack and
+            // safe-area layouts both overlapped it on iOS 26/27).
+            if audioPlayer.currentSong != nil {
+                MiniPlayer()
+                    // .transition defines how this view appears/disappears.
+                    // .move(edge: .bottom) = slides up from the bottom when appearing,
+                    // slides down when disappearing.
+                    .transition(.move(edge: .bottom))
+                    // Tap gesture on the mini player opens the full-screen player
+                    .onTapGesture {
+                        showFullPlayer = true
+                    }
+                    // Swipe up on mini player to show queue
+                    .gesture(
+                        DragGesture(minimumDistance: 20)
+                            .onEnded { value in
+                                // If the user swiped UP (negative vertical translation),
+                                // show the queue sheet
+                                if value.translation.height < -40 {
+                                    showQueue = true
+                                }
+                            }
+                    )
+            }
         }
         // .fullScreenCover = presents a view that covers the ENTIRE screen
         // (including the status bar). Unlike .sheet, it can't be swiped down
@@ -127,6 +128,12 @@ struct ContentView: View {
         // Queue sheet, slides up when user swipes up on mini player
         .sheet(isPresented: $showQueue) {
             QueueView()
+        }
+        // YouTube sign-in sheet: presented when YouTube answers a
+        // request with "Sign in to confirm you're not a bot"
+        // (LOGIN_REQUIRED), or from the Sign In button in Settings.
+        .sheet(isPresented: $youtubeSession.needsSignIn) {
+            YouTubeLoginView()
         }
         // Apply the user's font size preference from Settings.
         // Reads @AppStorage("fontSizeScale") and adjusts DynamicTypeSize.
@@ -156,6 +163,21 @@ struct ContentView: View {
             Button("OK", role: .cancel) { }
         } message: {
             Text(offlineManager.wifiOnlyBlockedMessage ?? "")
+        }
+        // Playback failure alert (e.g. YouTube served an error page
+        // instead of the song): shown instead of fake "playing".
+        .alert(
+            "Playback Error",
+            isPresented: Binding(
+                get: { audioPlayer.playbackError != nil },
+                set: { isPresented in
+                    if !isPresented { audioPlayer.playbackError = nil }
+                }
+            )
+        ) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(audioPlayer.playbackError ?? "")
         }
     }
 

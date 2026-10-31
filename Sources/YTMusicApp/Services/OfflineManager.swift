@@ -329,6 +329,20 @@ class OfflineManager: NSObject, ObservableObject {
             try FileManager.default.removeItem(at: fileURL)
         }
         try FileManager.default.moveItem(at: tempURL, to: fileURL)
+
+        // Sanity floor: even at the lowest quality a full song is
+        // hundreds of KB. Anything smaller is an error page or a
+        // truncated transfer, not audio — don't keep it.
+        let attrs = try? FileManager.default.attributesOfItem(atPath: fileURL.path)
+        let fileSize = (attrs?[.size] as? NSNumber)?.intValue ?? 0
+        if fileSize < 20_000 {
+            try? FileManager.default.removeItem(at: fileURL)
+            throw NSError(
+                domain: "OfflineManager",
+                code: -2,
+                userInfo: [NSLocalizedDescriptionKey: "Downloaded file is only \(fileSize) bytes — not audio"]
+            )
+        }
         return fileName
     }
 
@@ -551,6 +565,28 @@ extension OfflineManager: URLSessionDownloadDelegate {
         didFinishDownloadingTo location: URL
     ) {
         let taskId = downloadTask.taskIdentifier
+
+        // A download task "succeeds" at the URLSession level even
+        // when the server answered an error — YouTube's bot wall,
+        // for example, serves a tiny error page instead of the song.
+        // Recording that page as the download produced phantom
+        // downloads (listed as Downloaded, but Zero KB and silent).
+        // Refuse anything that is not HTTP 200.
+        if let http = downloadTask.response as? HTTPURLResponse, http.statusCode != 200 {
+            let error = NSError(
+                domain: "OfflineManager",
+                code: http.statusCode,
+                userInfo: [NSLocalizedDescriptionKey: "Server answered HTTP \(http.statusCode) instead of the audio file"]
+            )
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
+                if let continuation = self.downloadContinuations.removeValue(forKey: taskId) {
+                    continuation.resume(throwing: error)
+                }
+                self.taskIdToVideoId.removeValue(forKey: taskId)
+            }
+            return
+        }
 
         // BUG FIX: Apple's documentation for this delegate method is very
         // explicit, the file at `location` is a temporary file that the

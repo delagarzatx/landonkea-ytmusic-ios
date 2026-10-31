@@ -567,9 +567,16 @@ class InnerTubeClient {
             request.addValue(visitorData, forHTTPHeaderField: "X-Goog-Visitor-Id")
         }
         
-        // Add cookie if we have it (for logged-in features)
-        if let cookie = cookie {
+        // Add the session cookie if the user signed in inside the
+        // app (falls back to the manually-set cookie, if any).
+        if let cookie = YouTubeSessionManager.shared.cookieHeaderValue ?? cookie {
             request.addValue(cookie, forHTTPHeaderField: "Cookie")
+        }
+        
+        // Signed-in InnerTube requests also need the SAPISIDHASH
+        // authorization header derived from the session cookie.
+        if let authorization = YouTubeSessionManager.shared.authorizationHeader(origin: "https://music.youtube.com") {
+            request.addValue(authorization, forHTTPHeaderField: "Authorization")
         }
         
         // Encode the body to JSON
@@ -749,6 +756,11 @@ class InnerTubeClient {
     private func parsePlayerInfo(from response: PlayerResponse, quality: String = "high") throws -> PlayerInfo {
         // Check if the video is playable
         if let status = response.playabilityStatus, status.status != "OK" {
+            // "Sign in to confirm you're not a bot": surface the
+            // in-app sign-in sheet instead of failing silently.
+            if status.status == "LOGIN_REQUIRED" {
+                YouTubeSessionManager.shared.noteSignInRequired()
+            }
             throw InnerTubeError.videoUnplayable(reason: status.reason ?? "Unknown reason")
         }
         
