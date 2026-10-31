@@ -39,9 +39,6 @@ struct SettingsView: View {
 
     /// Whether dark mode is enabled. When toggled, it immediately affects
     /// the `.preferredColorScheme` modifier at the bottom of this view.
-    /// YouTube session (sign-in state) for the YouTube section below.
-    @ObservedObject private var youtubeSession = YouTubeSessionManager.shared
-
     @AppStorage("darkMode") private var darkMode = true
 
     /// Whether to follow the system appearance.
@@ -102,7 +99,6 @@ struct SettingsView: View {
                 downloadsSection
                 storageSection
                 statsSection
-                youtubeSection
                 aboutSection
             }
             .navigationTitle("Settings")
@@ -314,32 +310,6 @@ struct SettingsView: View {
     }
 
     /// About section: version, developer, and external links.
-    // YouTube sign-in state. Playback needs a signed-in session:
-    // YouTube refuses anonymous requests with "Sign in to confirm
-    // you're not a bot" (LOGIN_REQUIRED).
-    private var youtubeSection: some View {
-        Section {
-            if youtubeSession.isSignedIn {
-                Label("Signed in", systemImage: "checkmark.circle.fill")
-                    .foregroundColor(.green)
-
-                Button("Sign Out", role: .destructive) {
-                    youtubeSession.signOut()
-                }
-            } else {
-                Button("Sign In to YouTube") {
-                    youtubeSession.needsSignIn = true
-                }
-
-                Text("YouTube may ask you to sign in to confirm you're not a bot. Use a secondary account — playback needs a signed-in session.")
-                    .font(.footnote)
-                    .foregroundColor(.secondary)
-            }
-        } header: {
-            Text("YouTube")
-        }
-    }
-
     private var aboutSection: some View {
         Section {
             // Static info rows, just display text, no action

@@ -25,10 +25,6 @@ struct ContentView: View {
     /// so this is caught once at the root instead of in every view).
     @EnvironmentObject var offlineManager: OfflineManager
 
-    /// YouTube session (sign-in state), shared singleton observed
-    /// directly: drives the sign-in sheet below.
-    @ObservedObject private var youtubeSession = YouTubeSessionManager.shared
-
     /// Controls whether the full-screen player is shown.
     /// @State = owned by this view. When it changes, the view re-renders.
     @State private var showFullPlayer = false
@@ -128,12 +124,6 @@ struct ContentView: View {
         // Queue sheet, slides up when user swipes up on mini player
         .sheet(isPresented: $showQueue) {
             QueueView()
-        }
-        // YouTube sign-in sheet: presented when YouTube answers a
-        // request with "Sign in to confirm you're not a bot"
-        // (LOGIN_REQUIRED), or from the Sign In button in Settings.
-        .sheet(isPresented: $youtubeSession.needsSignIn) {
-            YouTubeLoginView()
         }
         // Apply the user's font size preference from Settings.
         // Reads @AppStorage("fontSizeScale") and adjusts DynamicTypeSize.

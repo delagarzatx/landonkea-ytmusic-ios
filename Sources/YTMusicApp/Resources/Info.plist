@@ -25,6 +25,27 @@
 	<string>$(INNERTUBE_API_KEY)</string>
 
 	<!--
+	The PO token provider (see PoTokenManager) runs on the home
+	server and is reached over Tailscale at a fixed Tailscale IP via
+	plain HTTP (the tailnet itself is the encrypted transport).
+	ATS would block that one cleartext address, so it gets a
+	narrow exception — every other destination stays HTTPS-only.
+	-->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSExceptionDomains</key>
+		<dict>
+			<key>100.85.23.30</key>
+			<dict>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<true/>
+				<key>NSIncludesSubdomains</key>
+				<false/>
+			</dict>
+		</dict>
+	</dict>
+
+	<!--
 	CFBundleURLTypes registers the "ytmusic://" custom URL scheme so the
 	Now Playing widget (Sources/YTMusicWidget) can set `.widgetURL(...)`
 	to deep-link back into this app when tapped. Without this registration

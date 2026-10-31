@@ -164,17 +164,33 @@ class InnerTubeClient {
     
     /// Get player info with a specific client
     private func getPlayerWithClient(videoId: String, client: YouTubeClient, quality: String = "high") async throws -> PlayerInfo {
+        do {
+            return try await playerAttempt(videoId: videoId, client: client, quality: quality, bypassTokenCache: false)
+        } catch let InnerTubeError.videoUnplayable(reason) where reason.localizedCaseInsensitiveContains("bot") {
+            // "Sign in to confirm you're not a bot": one retry with a
+            // freshly minted PO token before giving up on this
+            // client (the caller then falls back to the TV client).
+            return try await playerAttempt(videoId: videoId, client: client, quality: quality, bypassTokenCache: true)
+        }
+    }
+
+    /// One player request, carrying a PO token from the home token
+    /// provider when one is available (see PoTokenManager).
+    private func playerAttempt(videoId: String, client: YouTubeClient, quality: String, bypassTokenCache: Bool) async throws -> PlayerInfo {
+        let token = await PoTokenManager.shared.token(for: videoId, bypassCache: bypassTokenCache)
+
         let body = PlayerBody(
             context: client.toContext(visitorData: visitorData),
-            videoId: videoId
+            videoId: videoId,
+            serviceIntegrityDimensions: token.map { ServiceIntegrityDimensions(poToken: $0) }
         )
-        
+
         let response: PlayerResponse = try await POST(
             endpoint: "/player",
             client: client,
             body: body
         )
-        
+
         return try parsePlayerInfo(from: response, quality: quality)
     }
     
@@ -567,16 +583,9 @@ class InnerTubeClient {
             request.addValue(visitorData, forHTTPHeaderField: "X-Goog-Visitor-Id")
         }
         
-        // Add the session cookie if the user signed in inside the
-        // app (falls back to the manually-set cookie, if any).
-        if let cookie = YouTubeSessionManager.shared.cookieHeaderValue ?? cookie {
+        // Add cookie if we have it (for logged-in features)
+        if let cookie = cookie {
             request.addValue(cookie, forHTTPHeaderField: "Cookie")
-        }
-        
-        // Signed-in InnerTube requests also need the SAPISIDHASH
-        // authorization header derived from the session cookie.
-        if let authorization = YouTubeSessionManager.shared.authorizationHeader(origin: "https://music.youtube.com") {
-            request.addValue(authorization, forHTTPHeaderField: "Authorization")
         }
         
         // Encode the body to JSON
@@ -756,11 +765,6 @@ class InnerTubeClient {
     private func parsePlayerInfo(from response: PlayerResponse, quality: String = "high") throws -> PlayerInfo {
         // Check if the video is playable
         if let status = response.playabilityStatus, status.status != "OK" {
-            // "Sign in to confirm you're not a bot": surface the
-            // in-app sign-in sheet instead of failing silently.
-            if status.status == "LOGIN_REQUIRED" {
-                YouTubeSessionManager.shared.noteSignInRequired()
-            }
             throw InnerTubeError.videoUnplayable(reason: status.reason ?? "Unknown reason")
         }
         
@@ -998,6 +1002,15 @@ struct SearchBody: Codable {
 struct PlayerBody: Codable {
     let context: InnerTubeContext
     let videoId: String
+    /// Proof-of-origin token (see PoTokenManager). Without it,
+    /// YouTube answers anonymous player requests with
+    /// LOGIN_REQUIRED ("Sign in to confirm you're not a bot").
+    let serviceIntegrityDimensions: ServiceIntegrityDimensions?
+}
+
+/// The poToken container YouTube expects in player requests.
+struct ServiceIntegrityDimensions: Codable {
+    let poToken: String
 }
 
 /// Request body for browse
