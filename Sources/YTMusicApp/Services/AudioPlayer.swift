@@ -1124,16 +1124,23 @@ class AudioPlayer: ObservableObject {
         let nextIndex = currentIndex + 1
         
         if nextIndex < queue.count {
-            // There's a next song, play it
+            // There's a next song, play it.
+            // Capture the song NOW, while the index is validated: the
+            // Task runs later, and anything that mutates the queue in
+            // between (Stop emptying it, another skip, a removal) would
+            // otherwise make the Task read a stale `queue[currentIndex]`
+            // (after stop() that is queue[-1]: an out-of-range crash).
             currentIndex = nextIndex
+            let nextSong = queue[nextIndex]
             Task {
-                await playSong(queue[currentIndex])
+                await playSong(nextSong)
             }
         } else if repeatMode == .all {
             // End of queue but repeat all is on, loop back to start
             currentIndex = 0
+            let firstSong = queue[0]
             Task {
-                await playSong(queue[currentIndex])
+                await playSong(firstSong)
             }
         } else {
             // End of queue, no repeat, stop
@@ -1160,10 +1167,11 @@ class AudioPlayer: ObservableObject {
             return
         }
         
-        // Go to the previous song
+        // Go to the previous song (capture first, same rule as playNext)
         currentIndex -= 1
+        let previousSong = queue[currentIndex]
         Task {
-            await playSong(queue[currentIndex])
+            await playSong(previousSong)
         }
     }
     
@@ -1180,8 +1188,9 @@ class AudioPlayer: ObservableObject {
     func playFromHistory(at index: Int) {
         guard index >= 0 && index < currentIndex else { return }
         currentIndex = index
+        let song = queue[index]
         Task {
-            await playSong(queue[currentIndex])
+            await playSong(song)
         }
     }
 
@@ -1258,8 +1267,9 @@ class AudioPlayer: ObservableObject {
                 // Play the song at the same index (which is now the next song)
                 // `min()` prevents crash if currentIndex is now past the end
                 currentIndex = min(currentIndex, queue.count - 1)
+                let nextSong = queue[currentIndex]
                 Task {
-                    await playSong(queue[currentIndex])
+                    await playSong(nextSong)
                 }
             }
         }

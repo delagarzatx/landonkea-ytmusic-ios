@@ -49,6 +49,9 @@ struct PlayerView: View {
     @EnvironmentObject var apiClient: APIClient
 
     var body: some View {
+        // Group so the auto-dismiss modifier below applies no matter
+        // which branch is on screen.
+        Group {
         if let song = audioPlayer.currentSong {
             ZStack {
                 LinearGradient(colors: [waPanelTop, waPanelBottom],
@@ -100,7 +103,52 @@ struct PlayerView: View {
                     }
             )
             .preferredColorScheme(.dark)
+        } else {
+            nothingPlayingView
         }
+        }
+        // When the current song goes away entirely (Stop button, Next
+        // on the last song in the queue), close the cover on its own:
+        // a full-screen cover whose content vanished would otherwise
+        // sit there black, with no controls and no swipe to escape.
+        // The else branch above is the safety net if this never fires.
+        .onChange(of: audioPlayer.currentSong?.id) { newId in
+            if newId == nil {
+                isShowing = false
+            }
+        }
+    }
+
+    /// Fallback face for "cover is up but nothing is playing": same
+    /// panel background, an LCD-style label and a working Close, so
+    /// the full-screen player can never become a black dead end.
+    private var nothingPlayingView: some View {
+        ZStack {
+            LinearGradient(colors: [waPanelTop, waPanelBottom],
+                           startPoint: .top, endPoint: .bottom)
+                .ignoresSafeArea()
+
+            VStack(spacing: 14) {
+                Text("NOTHING PLAYING")
+                    .font(.system(size: 13, weight: .black, design: .monospaced))
+                    .foregroundColor(waGreen)
+                Button {
+                    isShowing = false
+                } label: {
+                    Text("CLOSE")
+                        .font(.system(size: 11, weight: .black, design: .monospaced))
+                        .foregroundColor(Color(white: 0.88))
+                        .padding(.horizontal, 18)
+                        .padding(.vertical, 9)
+                        .background(LinearGradient(colors: [Color(white: 0.38), Color(white: 0.16)],
+                                                   startPoint: .top, endPoint: .bottom))
+                        .overlay(Rectangle().stroke(Color(white: 0.55), lineWidth: 1))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Close player")
+            }
+        }
+        .preferredColorScheme(.dark)
     }
 
     // MARK: - Title bar
@@ -451,7 +499,11 @@ struct PlayerView: View {
                     .frame(height: 280)
             } else {
                 VStack(spacing: 0) {
-                    ForEach(Array(audioPlayer.queue.enumerated()), id: \.element.id) { index, item in
+                    // Rows are identified by position, NOT by song id:
+                    // the same song can legitimately sit in the queue
+                    // twice, and ForEach with duplicate ids is undefined
+                    // behavior (corrupted diffs, crashes).
+                    ForEach(Array(audioPlayer.queue.enumerated()), id: \.offset) { index, item in
                         playlistRow(index: index, item: item)
                         if index < audioPlayer.queue.count - 1 {
                             Rectangle().fill(Color.white.opacity(0.05)).frame(height: 1)
